@@ -2,9 +2,12 @@ from aiogram import F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 
+from nika.services.llm_client import LlmClient
+
 
 class MessageHandler:
-    def __init__(self) -> None:
+    def __init__(self, llm: LlmClient) -> None:
+        self._llm = llm
         self.router = Router()
 
     def register(self) -> Router:
@@ -16,4 +19,5 @@ class MessageHandler:
         await message.answer("Привет! Я Ника. Напиши мне сообщение.")
 
     async def handle_text(self, message: Message) -> None:
-        await message.answer(f"Получила: {message.text}")
+        answer = await self._llm.ask(message.text or "")
+        await message.answer(answer)
