@@ -19,14 +19,17 @@ from rich import box
 # Инициализация Rich консоли для красивого вывода
 console = Console()
 
-# Системный промпт - определяет роль и поведение ассистента
-# ЗАДАНИЕ: Вставьте сюда ваш системный промпт, который определит поведение бота
-# Например: "Ты — профессиональный банковский консультант..."
-SYSTEM_PROMPT = ""
+SYSTEM_PROMPT = """Ты — эксперт в области поддержки ИТ оборудвания и имеющих самые передовые навыки в этой области.
+Можешь отвечать на вопросы пользователей и помогать им с их проблемами. Отвечай на вопросы на русском языке. 
+Делай ответы максимально короткими и понятными для пользователяю."""
 
 
 class ChatBot:
     """Простой CLI бот для общения с LLM."""
+
+    MAX_MESSAGES = 10
+    EARLY_MESSAGES = 3
+    RECENT_MESSAGES = 4
 
     def __init__(self):
         """Инициализация бота с загрузкой конфигурации."""
@@ -67,11 +70,93 @@ class ChatBot:
             "content": content
         })
 
-        # ЗАДАНИЕ 4: Реализуйте ограничение истории здесь
-        # Подсказка: оставляйте системный промпт + последние N сообщений
-        # MAX_MESSAGES = 10
-        # if len(self.conversation_history) > MAX_MESSAGES:
-        #     # Удалите старые сообщения, но сохраните системный промпт
+        if len(self.conversation_history) > self.MAX_MESSAGES:
+            self.apply_sliding_window()
+
+    def apply_sliding_window(self):
+        """Скользящее окно: system + начало диалога + последние сообщения."""
+        if len(self.conversation_history) <= self.MAX_MESSAGES:
+            return
+
+        if self.conversation_history[0]["role"] == "system":
+            system_messages = [self.conversation_history[0]]
+            other_messages = self.conversation_history[1:]
+        else:
+            system_messages = []
+            other_messages = self.conversation_history[:]
+
+        early_indices = set(range(min(len(other_messages), self.EARLY_MESSAGES)))
+        recent_start = max(0, len(other_messages) - self.RECENT_MESSAGES)
+        recent_indices = set(range(recent_start, len(other_messages)))
+        keep_indices = sorted(early_indices | recent_indices)
+
+        preserved = [other_messages[i] for i in keep_indices]
+        self.conversation_history = system_messages + preserved
+
+    def summarize_history(self):
+        """Суммаризовать длинную историю диалога."""
+        if len(self.conversation_history) <= self.MAX_MESSAGES:
+            return
+
+        if self.conversation_history[0]["role"] == "system":
+            system_messages = [self.conversation_history[0]]
+            other_messages = self.conversation_history[1:]
+        else:
+            system_messages = []
+            other_messages = self.conversation_history[:]
+
+        if len(other_messages) <= self.RECENT_MESSAGES:
+            self._trim_history(system_messages, other_messages)
+            return
+
+        to_summarize = other_messages[:-self.RECENT_MESSAGES]
+        recent = other_messages[-self.RECENT_MESSAGES:]
+
+        transcript = "\n".join(
+            f"{msg['role']}: {msg['content']}" for msg in to_summarize
+        )
+        summary_request = [{
+            "role": "user",
+            "content": (
+                "Кратко резюмируй эту переписку в 2-3 предложениях. "
+                "Сохрани ключевые факты, вопросы и решения.\n\n"
+                f"{transcript}"
+            ),
+        }]
+
+        try:
+            with console.status("[bold yellow]📝 Суммаризирую историю...", spinner="dots"):
+                response = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=summary_request,
+                )
+
+            summary = response.choices[0].message.content
+            if response.usage:
+                usage = response.usage.model_dump()
+                self.session_metrics["total_prompt_tokens"] += usage.get("prompt_tokens", 0)
+                self.session_metrics["total_completion_tokens"] += usage.get("completion_tokens", 0)
+                self.session_metrics["total_tokens"] += usage.get("total_tokens", 0)
+
+            self.conversation_history = system_messages + [{
+                "role": "assistant",
+                "content": f"[Резюме предыдущего диалога] {summary}",
+            }] + recent
+
+            console.print("[yellow]📝 Старые сообщения заменены кратким резюме[/yellow]\n")
+
+        except Exception as e:
+            console.print(f"[red]❌ Ошибка суммаризации: {e}[/red]\n")
+            self._trim_history(system_messages, other_messages)
+
+    def _trim_history(
+        self,
+        system_messages: List[Dict[str, str]],
+        other_messages: List[Dict[str, str]],
+    ):
+        """Обрезать историю, сохранив системный промпт и последние сообщения."""
+        keep = self.MAX_MESSAGES - len(system_messages)
+        self.conversation_history = system_messages + other_messages[-keep:]
 
     def clear_history(self):
         """Очистить историю диалога."""
@@ -197,7 +282,9 @@ class ChatBot:
         if not SYSTEM_PROMPT:
             console.print("[yellow]⚠️  Системный промпт не задан. Отредактируйте SYSTEM_PROMPT в src/bot.py[/yellow]\n")
         else:
-            console.print("[green]✓ Системный промпт активен[/green]\n")
+            role_preview = SYSTEM_PROMPT.strip().splitlines()[0]
+            console.print(f"[green]✓ Системный промпт активен:[/green] {role_preview}\n")
+            console.print("[dim]После изменения SYSTEM_PROMPT перезапустите бота (Ctrl+C → make run)[/dim]\n")
 
     def run(self):
         """Запустить основной цикл бота (REPL)."""
