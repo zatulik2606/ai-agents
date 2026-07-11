@@ -1,5 +1,5 @@
 from aiogram import F, Router
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
 
 from nika.services.chat_history import ChatHistory
@@ -14,11 +14,40 @@ class MessageHandler:
 
     def register(self) -> Router:
         self.router.message.register(self.handle_start, CommandStart())
+        self.router.message.register(self.handle_reset, Command("reset"))
+        self.router.message.register(self.handle_help, Command("help"))
+        self.router.message.register(self.handle_example, Command("example"))
         self.router.message.register(self.handle_text, F.text & ~F.text.startswith("/"))
         return self.router
 
     async def handle_start(self, message: Message) -> None:
-        await message.answer("Привет! Я Ника. Напиши мне сообщение.")
+        await message.answer(
+            "Привет! Я Ника — твоя ассистентка по диабету. "
+            "Помогу с ХЕ, БЖЕ и расчётами инсулина. Просто напиши вопрос."
+        )
+
+    async def handle_reset(self, message: Message) -> None:
+        if not message.from_user:
+            return
+        self._history.clear(message.from_user.id)
+        await message.answer("История диалога сброшена. Можем начать сначала.")
+
+    async def handle_help(self, message: Message) -> None:
+        await message.answer(
+            "Я Ника — ассистентка по диабету.\n"
+            "Помогаю с ХЕ, БЖЕ и расчётами инсулина.\n\n"
+            "/reset — сбросить историю диалога\n"
+            "/example — примеры вопросов\n"
+            "/help — эта справка"
+        )
+
+    async def handle_example(self, message: Message) -> None:
+        await message.answer(
+            "Примеры вопросов:\n\n"
+            "• Сколько ХЕ в банане 120 г?\n"
+            "• Посчитай доколку на БЖЕ: 2 БЖЕ, коэффициент 0.5\n"
+            "• Овсянка 200 г на молоке — сколько инсулина при К1=4?"
+        )
 
     async def handle_text(self, message: Message) -> None:
         if not message.from_user:
