@@ -6,6 +6,8 @@ import sys
 from aiogram import Bot, Dispatcher
 from dotenv import load_dotenv
 
+from nika.handlers.message_handler import MessageHandler
+
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
@@ -20,6 +22,7 @@ async def main() -> None:
 
     bot = Bot(token=token)
     dp = Dispatcher()
+    dp.include_router(MessageHandler().register())
     logger.info("Ника: starting polling...")
     await dp.start_polling(bot)
 

@@ -4,4 +4,4 @@ install:
 	uv sync
 
 run: install
-	uv run python src/nika/main.py
+	PYTHONPATH=src uv run python -m nika.main
