@@ -1,8 +1,12 @@
+import logging
+
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 
 from nika.config import Config
 from nika.services.chat_history import ChatMessage
+
+logger = logging.getLogger(__name__)
 
 
 class LlmClient:
@@ -24,6 +28,7 @@ class LlmClient:
             else:
                 messages.append({"role": "assistant", "content": item["content"]})
         messages.append({"role": "user", "content": text})
+        logger.info("LLM request: model=%s messages=%d", self._model, len(messages))
         response = await self._client.chat.completions.create(
             model=self._model,
             messages=messages,

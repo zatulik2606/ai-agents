@@ -1,9 +1,13 @@
+import logging
+
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
 
 from nika.services.chat_history import ChatHistory
 from nika.services.llm_client import LlmClient
+
+logger = logging.getLogger(__name__)
 
 
 class MessageHandler:
@@ -55,9 +59,18 @@ class MessageHandler:
 
         user_id = message.from_user.id
         text = message.text or ""
+        logger.info("user_id=%s incoming: %s", user_id, text)
+
         history = self._history.get(user_id)
 
-        answer = await self._llm.ask(text, history)
+        try:
+            answer = await self._llm.ask(text, history)
+        except Exception:
+            logger.exception("LLM error for user_id=%s", user_id)
+            await message.answer("Не удалось получить ответ. Попробуй позже.")
+            return
+
+        logger.info("user_id=%s response_len=%d", user_id, len(answer))
         self._history.add(user_id, "user", text)
         self._history.add(user_id, "assistant", answer)
 

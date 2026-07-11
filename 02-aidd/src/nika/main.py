@@ -25,6 +25,7 @@ async def main() -> None:
     llm = LlmClient(config)
     history = ChatHistory()
     dp.include_router(MessageHandler(llm, history).register())
+    logger.info("Config loaded: model=%s", config.llm_model)
     logger.info("Ника: starting polling...")
     await dp.start_polling(bot)
 
