@@ -6,6 +6,7 @@ from aiogram import Bot, Dispatcher
 
 from nika.config import Config
 from nika.handlers.message_handler import MessageHandler
+from nika.services.chat_history import ChatHistory
 from nika.services.llm_client import LlmClient
 
 logging.basicConfig(level=logging.INFO)
@@ -22,7 +23,8 @@ async def main() -> None:
     bot = Bot(token=config.telegram_bot_token)
     dp = Dispatcher()
     llm = LlmClient(config)
-    dp.include_router(MessageHandler(llm).register())
+    history = ChatHistory()
+    dp.include_router(MessageHandler(llm, history).register())
     logger.info("Ника: starting polling...")
     await dp.start_polling(bot)
 
