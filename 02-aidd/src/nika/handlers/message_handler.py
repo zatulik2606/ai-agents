@@ -27,7 +27,8 @@ class MessageHandler:
     async def handle_start(self, message: Message) -> None:
         await message.answer(
             "Привет! Я Ника — твоя ассистентка по диабету. "
-            "Помогу с ХЕ, БЖЕ и расчётами инсулина. Просто напиши вопрос."
+            "Рада помочь с ХЕ, питанием и вопросами об инсулине. "
+            "Просто напиши вопрос."
         )
 
     async def handle_reset(self, message: Message) -> None:
@@ -39,7 +40,8 @@ class MessageHandler:
     async def handle_help(self, message: Message) -> None:
         await message.answer(
             "Я Ника — ассистентка по диабету.\n"
-            "Помогаю с ХЕ, БЖЕ и расчётами инсулина.\n\n"
+            "Помогаю с ХЕ, питанием и контекстом инсулина.\n"
+            "Не назначаю дозы — только справочная информация.\n\n"
             "/reset — сбросить историю диалога\n"
             "/example — примеры вопросов\n"
             "/help — эта справка"
@@ -49,8 +51,8 @@ class MessageHandler:
         await message.answer(
             "Примеры вопросов:\n\n"
             "• Сколько ХЕ в банане 120 г?\n"
-            "• Посчитай доколку на БЖЕ: 2 БЖЕ, коэффициент 0.5\n"
-            "• Овсянка 200 г на молоке — сколько инсулина при К1=4?"
+            "• Как посчитать доколку на 2 БЖЕ при коэффициенте 0.5?\n"
+            "• Что учесть в питании при овсянке на молоке?"
         )
 
     async def handle_text(self, message: Message) -> None:
