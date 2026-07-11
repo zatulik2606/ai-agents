@@ -1,26 +1,24 @@
 import asyncio
 import logging
-import os
 import sys
 
 from aiogram import Bot, Dispatcher
-from dotenv import load_dotenv
 
+from nika.config import Config
 from nika.handlers.message_handler import MessageHandler
-
-load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
-    token = os.getenv("TELEGRAM_BOT_TOKEN")
-    if not token:
-        logger.error("TELEGRAM_BOT_TOKEN not set")
+    try:
+        config = Config.from_env()
+    except ValueError as error:
+        logger.error("%s", error)
         sys.exit(1)
 
-    bot = Bot(token=token)
+    bot = Bot(token=config.telegram_bot_token)
     dp = Dispatcher()
     dp.include_router(MessageHandler().register())
     logger.info("Ника: starting polling...")
