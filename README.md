@@ -11,7 +11,7 @@
 | Модуль | Тема | Статус |
 |--------|------|--------|
 | М01 | Основы LLM и стандартные API | ✅ |
-| М02 | AI-driven разработка с Cursor | ⬜ |
+| М02 | AI-driven разработка с Cursor | ✅ |
 | М03 | Мультимодальность и локальный запуск LLM | ⬜ |
 | М04 | RAG с LangChain: от теории к практике | ⬜ |
 | М05 | Мониторинг и оценка качества RAG-систем | ⬜ |
@@ -31,7 +31,7 @@
 ```
 ai-agents/
 ├── 01-llm-api/   # М01: CLI LLM-бот (OpenRouter) ✅
-├── m02/          # М02: AI-driven разработка с Cursor
+├── 02-aidd/      # М02: Telegram-бот «Ника» (aiogram + OpenRouter) ✅
 ├── m03/          # М03: Мультимодальность и локальный запуск LLM
 ├── m04/          # М04: RAG с LangChain
 ├── m05/          # М05: Мониторинг и оценка качества RAG-систем
@@ -59,6 +59,15 @@ ai-agents/
 cd 01-llm-api
 make setup
 # создайте .env с OPENROUTER_API_KEY (см. 01-llm-api/README.md)
+make run
+```
+
+### М02 — Telegram-бот «Ника»
+
+```bash
+cd 02-aidd
+make install
+# создайте .env на основе .env.example (TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY)
 make run
 ```
 
