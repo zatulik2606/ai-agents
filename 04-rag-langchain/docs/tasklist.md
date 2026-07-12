@@ -48,12 +48,12 @@
 | 25 | RAG через OpenRouter при гибриде | ✅ Готово | RAG model=gemini, base_url=openrouter |
 | 26 | UX: «Ищу в руководстве…» | ✅ Готово | статус при RAG-запросе |
 | 27 | Промпт + классификация | ✅ Готово | инъекции → RAG, еда → учёт |
-| 28 | Документация + Docker | ⬜ Ожидает | README, docker-run с RAG |
+| 28 | Документация + Docker | ✅ Готово | README, data volume в docker-run |
 
 **Легенда:** ⬜ Ожидает · 🔄 В работе · ✅ Готово · ⛔ Заблокировано
 
-**Текущая итерация:** 28  
-**Завершено:** 28 / 29
+**Текущая итерация:** —  
+**Завершено:** 29 / 29
 
 ---
 
@@ -361,7 +361,9 @@
 
 ### 28. Документация + Docker
 
-- [ ] README с запуском и RAG-переменными
-- [ ] Проверка `make docker-run` с PDF и OpenRouter
+- [x] README с запуском и RAG-переменными
+- [x] Volume `./data` в `make docker-run`
+- [x] `mkdir -p data` в Dockerfile
+- [x] Проверка `make docker-build`
 
-**Проверка:** README актуален; бот в Docker отвечает через RAG.
+**Проверка:** README актуален; `make docker-build` проходит; `make docker-run` с PDF в `data/`.

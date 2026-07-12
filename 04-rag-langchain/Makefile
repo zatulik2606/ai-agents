@@ -10,4 +10,4 @@ docker-build:
 	docker build -t nika-bot .
 
 docker-run: docker-build
-	docker run --rm --env-file .env nika-bot
+	docker run --rm --env-file .env -v "$(PWD)/data:/app/data" nika-bot
