@@ -8,6 +8,12 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+DISCLAIMER = (
+    "Информация справочная и не заменяет консультацию специалиста."
+)
+GRAMS_PER_BREAD_UNIT = 12.0
+DEFAULT_BOLUS_MINUTES = 15
+
 
 @dataclass
 class MealEntry:
@@ -68,6 +74,143 @@ class MealExtraction(BaseModel):
             notes=self.notes,
         )
 
+    def sanitize(self) -> "MealExtraction":
+        bolus = self.bolus_minutes_before
+        if bolus is None or bolus < 5 or bolus > 120:
+            bolus = DEFAULT_BOLUS_MINUTES
+
+        return self.model_copy(
+            update={
+                "sugar_before": _normalize_glucose(self.sugar_before),
+                "sugar_after": _normalize_glucose(self.sugar_after),
+                "bolus_minutes_before": bolus,
+                "bread_units": self._normalized_bread_units(),
+            },
+        )
+
+    def _normalized_bread_units(self) -> float | None:
+        if self.bread_units is not None:
+            return self.bread_units
+        if self.carbs_g is not None:
+            return self.carbs_g / GRAMS_PER_BREAD_UNIT
+        return None
+
+    def finalize_for_photo(self, description: str) -> "MealExtraction":
+        product = _clean_product(self.product) or _guess_product(description)
+        quantity = _clean_quantity(self.quantity)
+        has_nutrition = (
+            self.carbs_g is not None
+            or self.bread_units is not None
+            or (self.proteins_g is not None and self.proteins_g > 0)
+        )
+        needs_clarification = product is None and not has_nutrition
+
+        return self.model_copy(
+            update={
+                "product": product,
+                "quantity": quantity,
+                "needs_clarification": needs_clarification,
+                "should_log": product is not None or has_nutrition,
+            },
+        )
+
+    def display_product(self) -> str | None:
+        product = _clean_product(self.product)
+        return product
+
+    def display_quantity(self) -> str | None:
+        return _clean_quantity(self.quantity)
+
+    def bread_units_estimate(self) -> float | None:
+        if self.bread_units is not None:
+            return self.bread_units
+        if self.carbs_g is not None:
+            return self.carbs_g / GRAMS_PER_BREAD_UNIT
+        return None
+
+    def build_reply(self) -> str:
+        lines = ["Записала приём пищи."]
+        if self.product:
+            lines.append(f"• Продукт: {self.product}")
+        if self.quantity and self.quantity not in {"?", "не указано"}:
+            lines.append(f"• Порция: {self.quantity}")
+
+        if self.carbs_g is not None:
+            carbs_text = f"{self.carbs_g:.0f}".rstrip("0").rstrip(".")
+            lines.append(f"• Углеводы: ~{carbs_text} г")
+
+        xe = self.bread_units_estimate()
+        if xe is not None:
+            xe_text = f"{xe:.1f}".rstrip("0").rstrip(".")
+            lines.append(f"• Хлебные единицы: ~{xe_text} ХЕ")
+        elif self.carbs_g is None:
+            lines.append("• Углеводы: не удалось оценить")
+
+        if self.proteins_g is not None or self.fats_g is not None:
+            proteins = self.proteins_g or 0
+            fats = self.fats_g or 0
+            lines.append(f"• Белки: {proteins:g} г, жиры: {fats:g} г")
+            bje = (proteins + fats) / 10
+            if bje > 0:
+                bje_text = f"{bje:.1f}".rstrip("0").rstrip(".")
+                lines.append(f"• БЖЕ для доколки: ~{bje_text}")
+
+        if self.sugar_before is not None:
+            sugar_text = f"{self.sugar_before:.1f}".rstrip("0").rstrip(".")
+            lines.append(f"• Сахар до еды: {sugar_text} ммоль/л")
+
+        lines.append("")
+        lines.append(DISCLAIMER)
+        return "\n".join(lines)
+
+    def insulin_note(self) -> str | None:
+        xe = self.bread_units_estimate()
+        if xe is None:
+            return (
+                "Не удалось оценить углеводы — уточни состав блюда.\n\n"
+                f"{DISCLAIMER}"
+            )
+        if xe < 0.5:
+            xe_text = f"{xe:.1f}".rstrip("0").rstrip(".")
+            return (
+                f"Углеводов мало (~{xe_text} ХЕ) — доколка на еду обычно не нужна.\n\n"
+                f"{DISCLAIMER}"
+            )
+        return None
+
+    def build_clarification_reply(self) -> str:
+        product = self.display_product()
+        lines: list[str] = []
+
+        if product:
+            lines.append(f"На фото вижу {product}.")
+        else:
+            lines.append("На фото что-то съедобное, но название не уверена.")
+
+        quantity = self.display_quantity()
+        if quantity:
+            lines.append(f"Примерная порция: {quantity}.")
+
+        xe = self.bread_units_estimate()
+        if xe is not None and xe > 0:
+            xe_text = f"{xe:.1f}".rstrip("0").rstrip(".")
+            lines.append(f"Ориентировочно ~{xe_text} ХЕ.")
+
+        if self.proteins_g or self.fats_g:
+            proteins = self.proteins_g or 0
+            fats = self.fats_g or 0
+            bje = (proteins + fats) / 10
+            if bje > 0:
+                bje_text = f"{bje:.1f}".rstrip("0").rstrip(".")
+                lines.append(f"БЖЕ для доколки: ~{bje_text}.")
+
+        lines.append(
+            "Подскажи порцию в граммах и сахар (ммоль/л) — посчитаю точнее."
+        )
+        lines.append("")
+        lines.append(DISCLAIMER)
+        return "\n".join(lines)
+
 
 class MealLogStore:
     def __init__(self, data_file: str) -> None:
@@ -82,6 +225,9 @@ class MealLogStore:
 
     def get_all(self) -> list[MealEntry]:
         return list(self._entries)
+
+    def get_since(self, since: datetime) -> list[MealEntry]:
+        return [entry for entry in self._entries if entry.datetime >= since]
 
     def clear(self) -> None:
         self._entries = []
@@ -169,3 +315,46 @@ def _optional_int(data: dict[str, object], key: str) -> int | None:
     if isinstance(value, int) and not isinstance(value, bool):
         return value
     raise ValueError(f"meal entry {key} must be an integer")
+
+
+def _normalize_glucose(value: float | None) -> float | None:
+    if value is None:
+        return None
+    if value > 33:
+        if 40 <= value <= 600:
+            return round(value / 18.0, 1)
+        return None
+    if value < 1:
+        return None
+    return value
+
+
+def _clean_product(value: str | None) -> str | None:
+    if not value:
+        return None
+    cleaned = value.strip()
+    if cleaned.lower() in {"null", "none", "не указано", "?"}:
+        return None
+    if len(cleaned) < 2:
+        return None
+    return cleaned
+
+
+def _clean_quantity(value: str | None) -> str | None:
+    if not value:
+        return None
+    cleaned = value.strip()
+    if cleaned.lower() in {"null", "none", "не указано", "?"}:
+        return None
+    if len(cleaned) > 30:
+        return None
+    return cleaned
+
+
+def _guess_product(description: str) -> str | None:
+    lower = description.lower()
+    if "продукт:" in lower:
+        for line in description.splitlines():
+            if line.lower().startswith("продукт:"):
+                return _clean_product(line.split(":", 1)[1].strip())
+    return None

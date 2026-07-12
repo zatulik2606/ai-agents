@@ -10,6 +10,7 @@ from nika.services.chat_history import ChatHistory
 from nika.services.insulin_calculator import InsulinCalculator
 from nika.services.llm_client import LlmClient
 from nika.services.meal_log import MealLogStore
+from nika.services.transcribe_client import TranscribeClient
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,8 +29,17 @@ async def main() -> None:
     history = ChatHistory()
     meal_log = MealLogStore(config.data_file)
     insulin = InsulinCalculator(config)
-    dp.include_router(MessageHandler(llm, history, meal_log, insulin).register())
-    logger.info("Config loaded: model=%s", config.llm_model)
+    transcribe = TranscribeClient(config)
+    dp.include_router(
+        MessageHandler(config, llm, history, meal_log, insulin, transcribe).register(),
+    )
+    logger.info(
+        "Config loaded: provider=%s text=%s image=%s audio=%s",
+        config.llm_provider,
+        config.model_text,
+        config.model_image,
+        config.model_audio,
+    )
     logger.info("Ника: starting polling...")
     await dp.start_polling(bot)
 
