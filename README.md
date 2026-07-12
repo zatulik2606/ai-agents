@@ -14,7 +14,7 @@
 | М02 | AI-driven разработка с Cursor | ✅ |
 | М03 | Мультимодальность и локальный запуск LLM | ✅ |
 | М04 | RAG с LangChain: от теории к практике | ✅ |
-| М05 | Мониторинг и оценка качества RAG-систем | ⬜ |
+| М05 | Мониторинг и оценка качества RAG-систем | ✅ |
 | М06 | Advanced RAG | ⬜ |
 | М07 | Агенты с LangChain и LangGraph | ⬜ |
 | М08 | Model Context Protocol (MCP) | ⬜ |
@@ -34,7 +34,7 @@ ai-agents/
 ├── 02-aidd/      # М02: Telegram-бот «Ника» (aiogram + OpenRouter) ✅
 ├── 03-multimodal/ # М03: мультимодальный бот (текст, фото, голос) ✅
 ├── 04-rag-langchain/ # М04: RAG-бот (LangChain + PDF) ✅
-├── m05/          # М05: Мониторинг и оценка качества RAG-систем
+├── 05-monitoring-qa/ # М05: мониторинг и оценка RAG (LangSmith, RAGAS) ✅
 ├── m06/          # М06: Advanced RAG
 ├── m07/          # М07: Агенты с LangChain и LangGraph
 ├── m08/          # М08: Model Context Protocol (MCP)
@@ -86,6 +86,15 @@ make run
 cd 04-rag-langchain
 cp .env.example .env
 # TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY; PDF в data/
+make run
+```
+
+### М05 — Мониторинг и оценка RAG
+
+```bash
+cd 05-monitoring-qa
+cp .env.example .env
+# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY, LANGSMITH_* (см. README модуля)
 make run
 ```
 
