@@ -35,8 +35,8 @@ async def main() -> None:
     indexer = Indexer(config)
     rag = RagService(config, indexer)
     try:
-        chunk_count = await indexer.aindex()
-        logger.info("Vector index ready: chunk_count=%d", chunk_count)
+        chunk_count = await asyncio.to_thread(indexer.reindex_all)
+        logger.info("Vector index ready: document_count=%d", chunk_count)
     except FileNotFoundError as error:
         logger.warning("PDF indexing skipped: %s", error)
     except Exception:
@@ -61,8 +61,10 @@ async def main() -> None:
         config.model_audio,
     )
     logger.info(
-        "RAG config: pdf=%s embedding=%s model=%s retriever_k=%s openai_base_url=%s",
+        "RAG config: pdf=%s embedding_provider=%s embedding=%s model=%s "
+        "retriever_k=%s openai_base_url=%s",
         config.data_pdf,
+        config.embedding_provider,
         config.model_embedding,
         config.model_rag,
         config.retriever_k,

@@ -34,12 +34,16 @@ DEFAULT_SYSTEM_PROMPT = """\
 DEFAULT_MODEL_TEXT = "openai/gpt-4o-mini"
 DEFAULT_MODEL_AUDIO = "openai/whisper-1"
 DEFAULT_MODEL_EMBEDDING = "openai/text-embedding-3-small"
+DEFAULT_EMBEDDING_PROVIDER = "openrouter"
+DEFAULT_OLLAMA_EMBEDDING_BASE_URL = "http://localhost:11434"
 DEFAULT_MODEL_RAG = "google/gemini-2.5-flash"
 DEFAULT_DATA_PDF = (
     "data/rukovodstvo_dlya_detei_i_ih_roditelei_saharnii_diabet_1_tipa_"
     "chto_neobhodimo_znat_178.pdf"
 )
 DEFAULT_RETRIEVER_K = 4
+DEFAULT_CHUNK_SIZE = 1000
+DEFAULT_CHUNK_OVERLAP = 200
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 OLLAMA_BASE_URL = "http://localhost:11434/v1"
@@ -68,9 +72,14 @@ class Config:
     openai_base_url: str
     openai_api_key: str
     model_embedding: str
+    embedding_provider: str
+    ollama_embedding_base_url: str
     model_rag: str
     retriever_k: int
     data_pdf: str
+    chunk_size: int
+    chunk_overlap: int
+    chunk_separators: list[str] | None
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -109,10 +118,15 @@ class Config:
             fpu_ratio=_float_env("FPU_RATIO", 10.0),
             openai_base_url=_openai_base_url(provider),
             openai_api_key=_openai_api_key(provider),
-            model_embedding=os.getenv("MODEL_EMBEDDING", DEFAULT_MODEL_EMBEDDING),
+            model_embedding=_model_embedding(),
+            embedding_provider=_embedding_provider(),
+            ollama_embedding_base_url=_ollama_embedding_base_url(),
             model_rag=_model_rag(provider, model_text),
             retriever_k=_int_env("RETRIEVER_K", DEFAULT_RETRIEVER_K),
             data_pdf=os.getenv("DATA_PDF", DEFAULT_DATA_PDF),
+            chunk_size=_int_env("CHUNK_SIZE", DEFAULT_CHUNK_SIZE),
+            chunk_overlap=_int_env("CHUNK_OVERLAP", DEFAULT_CHUNK_OVERLAP),
+            chunk_separators=_chunk_separators(),
         )
 
 
@@ -193,3 +207,39 @@ def _int_env(name: str, default: int) -> int:
     if raw is None:
         return default
     return int(raw)
+
+
+def _model_embedding() -> str:
+    return (
+        os.getenv("MODEL_EMBEDDING")
+        or os.getenv("EMBEDDING_MODEL")
+        or DEFAULT_MODEL_EMBEDDING
+    )
+
+
+def _embedding_provider() -> str:
+    provider = os.getenv("EMBEDDING_PROVIDER", DEFAULT_EMBEDDING_PROVIDER).lower()
+    if provider not in {"openrouter", "ollama"}:
+        msg = f"Unknown EMBEDDING_PROVIDER: {provider}"
+        raise ValueError(msg)
+    return provider
+
+
+def _ollama_embedding_base_url() -> str:
+    explicit = os.getenv("OLLAMA_EMBEDDING_BASE_URL")
+    if explicit:
+        return explicit.rstrip("/")
+    llm_url = os.getenv("LLM_BASE_URL", OLLAMA_BASE_URL)
+    if llm_url.endswith("/v1"):
+        return llm_url[:-3].rstrip("/")
+    return DEFAULT_OLLAMA_EMBEDDING_BASE_URL
+
+
+def _chunk_separators() -> list[str] | None:
+    profile = os.getenv("CHUNK_SEPARATORS", "default").lower()
+    if profile in {"default", ""}:
+        return None
+    if profile == "pdf":
+        return ["\n\n\n", "\n\n", "\n", ". ", " ", ""]
+    msg = f"Unknown CHUNK_SEPARATORS profile: {profile}"
+    raise ValueError(msg)
