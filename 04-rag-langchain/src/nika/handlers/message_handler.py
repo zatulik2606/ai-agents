@@ -3,13 +3,16 @@ import logging
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
+from langchain_core.messages import BaseMessage
 
 from nika.config import Config
-from nika.services.chat_history import ChatHistory, ChatMessage
+from nika.services.chat_history import ChatHistory
+from nika.services.indexer import Indexer
 from nika.services.insulin_calculator import InsulinCalculator
 from nika.services.llm_client import LlmClient
 from nika.services.meal_log import MealExtraction, MealLogStore
 from nika.services.meal_report import MealReport
+from nika.services.rag_service import RagService
 from nika.services.transcribe_client import TranscribeClient
 
 logger = logging.getLogger(__name__)
@@ -24,6 +27,8 @@ class MessageHandler:
         meal_log: MealLogStore,
         insulin: InsulinCalculator,
         transcribe: TranscribeClient,
+        rag: RagService,
+        indexer: Indexer,
     ) -> None:
         self._config = config
         self._llm = llm
@@ -31,6 +36,8 @@ class MessageHandler:
         self._meal_log = meal_log
         self._insulin = insulin
         self._transcribe = transcribe
+        self._rag = rag
+        self._indexer = indexer
         self._report = MealReport(meal_log, llm)
         self.router = Router()
 
@@ -43,6 +50,8 @@ class MessageHandler:
         self.router.message.register(self.handle_coeffs, Command("coeffs"))
         self.router.message.register(self.handle_report_day, Command("report_day"))
         self.router.message.register(self.handle_report_week, Command("report_week"))
+        self.router.message.register(self.handle_index, Command("index"))
+        self.router.message.register(self.handle_index_status, Command("index_status"))
         self.router.message.register(self.handle_text, F.text & ~F.text.startswith("/"))
         self.router.message.register(self.handle_photo, F.photo)
         self.router.message.register(self.handle_voice, F.voice)
@@ -74,6 +83,8 @@ class MessageHandler:
             "/report_day — сводка за день\n"
             "/report_week — сводка за неделю\n"
             "/coeffs — коэффициенты расчёта\n"
+            "/index — переиндексировать руководство\n"
+            "/index_status — статус индекса RAG\n"
             "/reset — сбросить историю диалога\n"
             "/reset_log — очистить учёт приёмов пищи\n"
             "/example — примеры\n"
@@ -122,8 +133,29 @@ class MessageHandler:
             "• Фото тарелки с едой\n"
             "• Голосом: съел банан, сахар 5.8\n"
             "• /report_day — сводка за день\n"
-            "• /coeffs — мои коэффициенты"
+            "• /coeffs — мои коэффициенты\n"
+            "• Что такое гипогликемия? — справочный вопрос (RAG)"
         )
+
+    async def handle_index(self, message: Message) -> None:
+        status = await message.answer("Индексирую руководство…")
+        try:
+            count = await self._indexer.aindex()
+        except FileNotFoundError:
+            await status.edit_text("PDF не найден. Проверь DATA_PDF в .env.")
+            return
+        except Exception:
+            logger.exception("Index error")
+            await status.edit_text("Не удалось проиндексировать. Попробуй позже.")
+            return
+        await status.edit_text(f"Готово. Проиндексировано {count} чанков.")
+
+    async def handle_index_status(self, message: Message) -> None:
+        count = self._indexer.chunk_count
+        if count == 0:
+            await message.answer("Индекс пуст. Запусти /index или перезапусти бота.")
+            return
+        await message.answer(f"Проиндексировано {count} чанков.")
 
     async def handle_text(self, message: Message) -> None:
         if not message.from_user:
@@ -143,8 +175,8 @@ class MessageHandler:
             return
 
         logger.info("user_id=%s response_len=%d", user_id, len(answer))
-        self._history.add(user_id, "user", text)
-        self._history.add(user_id, "assistant", answer)
+        self._history.add_user(user_id, text)
+        self._history.add_assistant(user_id, answer)
 
         await message.answer(answer)
 
@@ -182,8 +214,8 @@ class MessageHandler:
 
         user_text = f"[фото]{f' {caption}' if caption else ''}"
         logger.info("user_id=%s response_len=%d", user_id, len(answer))
-        self._history.add(user_id, "user", user_text)
-        self._history.add(user_id, "assistant", answer)
+        self._history.add_user(user_id, user_text)
+        self._history.add_assistant(user_id, answer)
 
         await message.answer(answer)
 
@@ -217,16 +249,18 @@ class MessageHandler:
 
         user_text = f"[голос] {transcript}"
         logger.info("user_id=%s response_len=%d", user_id, len(answer))
-        self._history.add(user_id, "user", user_text)
-        self._history.add(user_id, "assistant", answer)
+        self._history.add_user(user_id, user_text)
+        self._history.add_assistant(user_id, answer)
 
         await message.answer(answer)
 
-    async def _handle_message(self, text: str, history: list[ChatMessage]) -> str:
+    async def _handle_message(self, text: str, history: list[BaseMessage]) -> str:
         extraction = (await self._llm.extract_meal(text)).sanitize()
-        if not extraction.should_log:
-            return await self._llm.ask(text, history)
-        return self._process_extraction(extraction)
+        if extraction.should_log:
+            return self._process_extraction(extraction)
+        if extraction.is_reference_question:
+            return await self._rag.aanswer(text, history)
+        return await self._llm.ask(text, history)
 
     def _process_photo_extraction(self, extraction: MealExtraction) -> str:
         if not extraction.should_log:

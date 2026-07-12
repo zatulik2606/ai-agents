@@ -1,6 +1,7 @@
 import base64
 import logging
 
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from openai import AsyncOpenAI
 from openai.types.chat import (
     ChatCompletionContentPartParam,
@@ -8,7 +9,6 @@ from openai.types.chat import (
 )
 
 from nika.config import Config
-from nika.services.chat_history import ChatMessage
 from nika.services.meal_log import MealExtraction
 
 logger = logging.getLogger(__name__)
@@ -17,8 +17,13 @@ EXTRACTION_SYSTEM_PROMPT = """\
 Ты — Ника, ассистентка по диабету. Извлекаешь данные о приёме пищи из сообщения.
 
 Правила:
-- should_log=true — если пользователь сообщает о еде, сахаре, инсулине или доколке.
-- should_log=false — для общих вопросов, приветствий, «кто ты» и т.п.
+- should_log=true — если пользователь сообщает о конкретном приёме пищи, сахаре, \
+инсулине или доколке («съел», «сахар 6.2», «доколю 3 ЕД»).
+- is_reference_question=true — справочный вопрос по диабету или инсулинотерапии \
+(«сколько инъекций в день», «что такое гипогликемия», «как хранить инсулин»). \
+Не путай с записью приёма пищи.
+- should_log=false и is_reference_question=false — приветствия, «кто ты» \
+и прочий диалог.
 - needs_clarification=true — только если продукт совсем не определить.
 - Если источник — описание фото, оцени порцию, БЖУ и ХЕ по видимому размеру.
 - product и quantity — только на русском языке.
@@ -83,15 +88,17 @@ class LlmClient:
     def model_audio(self) -> str:
         return self._model_audio
 
-    async def ask(self, text: str, history: list[ChatMessage]) -> str:
+    async def ask(self, text: str, history: list[BaseMessage]) -> str:
         messages: list[ChatCompletionMessageParam] = [
             {"role": "system", "content": self._system_prompt},
         ]
         for item in history:
-            if item["role"] == "user":
-                messages.append({"role": "user", "content": item["content"]})
-            else:
-                messages.append({"role": "assistant", "content": item["content"]})
+            if isinstance(item, HumanMessage):
+                messages.append({"role": "user", "content": str(item.content)})
+            elif isinstance(item, AIMessage):
+                messages.append(
+                    {"role": "assistant", "content": str(item.content)},
+                )
         messages.append({"role": "user", "content": text})
         logger.info(
             "LLM request: model=%s messages=%d",

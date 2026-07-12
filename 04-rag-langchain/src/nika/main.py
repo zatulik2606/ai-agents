@@ -11,6 +11,7 @@ from nika.services.indexer import Indexer
 from nika.services.insulin_calculator import InsulinCalculator
 from nika.services.llm_client import LlmClient
 from nika.services.meal_log import MealLogStore
+from nika.services.rag_service import RagService
 from nika.services.transcribe_client import TranscribeClient
 
 logging.basicConfig(level=logging.INFO)
@@ -31,8 +32,26 @@ async def main() -> None:
     meal_log = MealLogStore(config.data_file)
     insulin = InsulinCalculator(config)
     transcribe = TranscribeClient(config)
+    indexer = Indexer(config)
+    rag = RagService(config, indexer)
+    try:
+        chunk_count = await indexer.aindex()
+        logger.info("Vector index ready: chunk_count=%d", chunk_count)
+    except FileNotFoundError as error:
+        logger.warning("PDF indexing skipped: %s", error)
+    except Exception:
+        logger.exception("PDF indexing failed")
     dp.include_router(
-        MessageHandler(config, llm, history, meal_log, insulin, transcribe).register(),
+        MessageHandler(
+            config,
+            llm,
+            history,
+            meal_log,
+            insulin,
+            transcribe,
+            rag,
+            indexer,
+        ).register(),
     )
     logger.info(
         "Config loaded: provider=%s text=%s image=%s audio=%s",
@@ -48,14 +67,6 @@ async def main() -> None:
         config.retriever_k,
         config.openai_base_url,
     )
-    try:
-        indexer = Indexer(config)
-        chunk_count = await indexer.aindex()
-        logger.info("Vector index ready: chunk_count=%d", chunk_count)
-    except FileNotFoundError as error:
-        logger.warning("PDF indexing skipped: %s", error)
-    except Exception:
-        logger.exception("PDF indexing failed")
     logger.info("Ника: starting polling...")
     await dp.start_polling(bot)
 

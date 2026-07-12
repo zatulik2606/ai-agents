@@ -36,15 +36,15 @@
 | 18 | LangChain deps + конфиг RAG | ✅ Готово | RAG-параметры в логах при старте |
 | 19 | Загрузка PDF + чанкинг | ✅ Готово | PDF 105 стр. → 225 чанков в логах |
 | 20 | Indexer + InMemoryVectorStore | ✅ Готово | 225 чанков, retriever → 4 docs |
-| 21 | Query transformation | ⬜ Ожидает | переформулировка запроса с учётом истории |
-| 22 | RAG-цепочка | ⬜ Ожидает | ответ с контекстом из PDF |
-| 23 | История LangChain messages | ⬜ Ожидает | HumanMessage/AIMessage/SystemMessage в ChatHistory |
-| 24 | Команды + интеграция | ⬜ Ожидает | /index, /index_status, reindex при старте, справочный вопрос → RAG |
+| 21 | Query transformation | ✅ Готово | follow-up → query с темой из истории |
+| 22 | RAG-цепочка | ✅ Готово | ответ по контексту PDF |
+| 23 | История LangChain messages | ✅ Готово | HumanMessage/AIMessage в ChatHistory |
+| 24 | Команды + интеграция | ✅ Готово | /index, /index_status, справочный вопрос → RAG |
 
 **Легенда:** ⬜ Ожидает · 🔄 В работе · ✅ Готово · ⛔ Заблокировано
 
-**Текущая итерация:** 21  
-**Завершено:** 21 / 25
+**Текущая итерация:** —  
+**Завершено:** 25 / 25
 
 ---
 
@@ -276,9 +276,9 @@
 
 ### 21. Query transformation
 
-- [ ] Цепочка переформулировки запроса с учётом истории (по `naive-rag.ipynb`)
-- [ ] Вход: последние messages + текущий вопрос
-- [ ] Выход: standalone query для retriever
+- [x] Цепочка переформулировки запроса с учётом истории (по `naive-rag.ipynb`)
+- [x] Вход: последние messages + текущий вопрос
+- [x] Выход: standalone query для retriever
 
 **Проверка:** «А что насчёт этого?» после вопроса о гипогликемии → query содержит тему из истории.
 
@@ -286,9 +286,9 @@
 
 ### 22. RAG-цепочка
 
-- [ ] `RagService` — `rag_query_transform_chain`: transform → retrieve (top-K) → generate
-- [ ] `RETRIEVER_K` из конфига
-- [ ] Ответ на основе контекста + истории + system prompt
+- [x] `RagService` — `rag_query_transform_chain`: transform → retrieve (top-K) → generate
+- [x] `RETRIEVER_K` из конфига
+- [x] Ответ на основе контекста + истории + system prompt
 
 **Проверка:** «Что такое гипогликемия?» → ответ по содержанию PDF, не общие знания модели.
 
@@ -296,9 +296,9 @@
 
 ### 23. История LangChain messages
 
-- [ ] `ChatHistory` хранит `list[BaseMessage]` (HumanMessage, AIMessage, SystemMessage)
-- [ ] RAG и учёт используют одну историю per user
-- [ ] `/reset` очищает messages
+- [x] `ChatHistory` хранит `list[BaseMessage]` (HumanMessage, AIMessage, SystemMessage)
+- [x] RAG и учёт используют одну историю per user
+- [x] `/reset` очищает messages
 
 **Проверка:** уточняющий справочный вопрос — RAG учитывает предыдущий обмен.
 
@@ -306,11 +306,11 @@
 
 ### 24. Команды + интеграция
 
-- [ ] `/index` — полная переиндексация
-- [ ] `/index_status` — число чанков
-- [ ] Переиндексация в `main.py` при старте
-- [ ] Маршрутизация: учёт → extract_meal; справочный вопрос → `RagService`
-- [ ] Обновить `/help`
+- [x] `/index` — полная переиндексация
+- [x] `/index_status` — число чанков
+- [x] Переиндексация в `main.py` при старте
+- [x] Маршрутизация: учёт → extract_meal; справочный вопрос → `RagService`
+- [x] Обновить `/help`
 
 **Проверка:** `/index_status` показывает N чанков; «Съел банан…» → учёт;
 «Что такое инсулиновая терапия?» → RAG-ответ из руководства.

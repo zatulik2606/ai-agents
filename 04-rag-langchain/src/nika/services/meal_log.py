@@ -35,7 +35,15 @@ class MealEntry:
 class MealExtraction(BaseModel):
     should_log: bool = Field(
         description=(
-            "True, если пользователь сообщает о приёме пищи, сахаре или инсулине"
+            "True, если пользователь сообщает о конкретном приёме пищи, "
+            "сахаре или инсулине"
+        ),
+    )
+    is_reference_question: bool = Field(
+        default=False,
+        description=(
+            "True, если это справочный вопрос по диабету, "
+            "а не запись приёма пищи"
         ),
     )
     needs_clarification: bool = Field(
