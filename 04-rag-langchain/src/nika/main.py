@@ -49,11 +49,13 @@ async def main() -> None:
         config.openai_base_url,
     )
     try:
-        await Indexer(config).aload_chunks()
+        indexer = Indexer(config)
+        chunk_count = await indexer.aindex()
+        logger.info("Vector index ready: chunk_count=%d", chunk_count)
     except FileNotFoundError as error:
-        logger.warning("PDF load skipped: %s", error)
+        logger.warning("PDF indexing skipped: %s", error)
     except Exception:
-        logger.exception("PDF load failed")
+        logger.exception("PDF indexing failed")
     logger.info("Ника: starting polling...")
     await dp.start_polling(bot)
 

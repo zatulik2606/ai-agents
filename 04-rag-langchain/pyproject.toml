@@ -39,6 +39,7 @@ module = [
     "langchain.*",
     "langchain_community.*",
     "langchain_core.*",
+    "langchain_openai.*",
     "langchain_text_splitters.*",
 ]
 ignore_missing_imports = true

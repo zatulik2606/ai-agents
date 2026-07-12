@@ -65,6 +65,7 @@ class Config:
     target_glucose_max: float
     fpu_ratio: float
     openai_base_url: str
+    openai_api_key: str
     model_embedding: str
     retriever_k: int
     data_pdf: str
@@ -105,6 +106,7 @@ class Config:
             target_glucose_max=_float_env("TARGET_GLUCOSE_MAX", 10.0),
             fpu_ratio=_float_env("FPU_RATIO", 10.0),
             openai_base_url=_openai_base_url(provider),
+            openai_api_key=_openai_api_key(provider),
             model_embedding=os.getenv("MODEL_EMBEDDING", DEFAULT_MODEL_EMBEDDING),
             retriever_k=_int_env("RETRIEVER_K", DEFAULT_RETRIEVER_K),
             data_pdf=os.getenv("DATA_PDF", DEFAULT_DATA_PDF),
@@ -125,6 +127,19 @@ def _openai_base_url(provider: str) -> str:
     if explicit:
         return explicit
     return _base_url(provider)
+
+
+def _openai_api_key(provider: str) -> str:
+    api_key = os.getenv("OPENROUTER_API_KEY", "")
+    if api_key:
+        return api_key
+    image_key = os.getenv("IMAGE_OPENROUTER_API_KEY", "")
+    if image_key:
+        return image_key
+    audio_key = os.getenv("AUDIO_OPENROUTER_API_KEY", "")
+    if audio_key:
+        return audio_key
+    return _api_key(provider)
 
 
 def _api_key(provider: str) -> str:

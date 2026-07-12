@@ -35,7 +35,7 @@
 |---|----------|--------|----------|
 | 18 | LangChain deps + конфиг RAG | ✅ Готово | RAG-параметры в логах при старте |
 | 19 | Загрузка PDF + чанкинг | ✅ Готово | PDF 105 стр. → 225 чанков в логах |
-| 20 | Indexer + InMemoryVectorStore | ⬜ Ожидает | эмбеддинги в памяти, chunk_count |
+| 20 | Indexer + InMemoryVectorStore | ✅ Готово | 225 чанков, retriever → 4 docs |
 | 21 | Query transformation | ⬜ Ожидает | переформулировка запроса с учётом истории |
 | 22 | RAG-цепочка | ⬜ Ожидает | ответ с контекстом из PDF |
 | 23 | История LangChain messages | ⬜ Ожидает | HumanMessage/AIMessage/SystemMessage в ChatHistory |
@@ -43,8 +43,8 @@
 
 **Легенда:** ⬜ Ожидает · 🔄 В работе · ✅ Готово · ⛔ Заблокировано
 
-**Текущая итерация:** 20  
-**Завершено:** 20 / 25
+**Текущая итерация:** 21  
+**Завершено:** 21 / 25
 
 ---
 
@@ -266,9 +266,9 @@
 
 ### 20. Indexer + InMemoryVectorStore
 
-- [ ] `Indexer` — embed chunks через `MODEL_EMBEDDING`
-- [ ] Хранение в `InMemoryVectorStore`
-- [ ] `chunk_count` — getter для статуса
+- [x] `Indexer` — embed chunks через `MODEL_EMBEDDING`
+- [x] Хранение в `InMemoryVectorStore`
+- [x] `chunk_count` — getter для статуса
 
 **Проверка:** после `index()` — `chunk_count > 0`, retriever возвращает документы.
 
