@@ -87,13 +87,37 @@ class MealExtraction(BaseModel):
         if bolus is None or bolus < 5 or bolus > 120:
             bolus = DEFAULT_BOLUS_MINUTES
 
+        should_log, is_reference = self._resolve_routing()
+
         return self.model_copy(
             update={
                 "sugar_before": _normalize_glucose(self.sugar_before),
                 "sugar_after": _normalize_glucose(self.sugar_after),
                 "bolus_minutes_before": bolus,
                 "bread_units": self._normalized_bread_units(),
+                "should_log": should_log,
+                "is_reference_question": is_reference,
             },
+        )
+
+    def _resolve_routing(self) -> tuple[bool, bool]:
+        should_log = self.should_log
+        is_reference = self.is_reference_question
+
+        if is_reference:
+            return False, True
+
+        if should_log and not self._has_meal_data():
+            return False, False
+
+        return should_log, False
+
+    def _has_meal_data(self) -> bool:
+        return (
+            _clean_product(self.product) is not None
+            or self.carbs_g is not None
+            or self.sugar_before is not None
+            or self.sugar_after is not None
         )
 
     def _normalized_bread_units(self) -> float | None:

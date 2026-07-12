@@ -14,16 +14,28 @@ from nika.services.meal_log import MealExtraction
 logger = logging.getLogger(__name__)
 
 EXTRACTION_SYSTEM_PROMPT = """\
-Ты — Ника, ассистентка по диабету. Извлекаешь данные о приёме пищи из сообщения.
+Ты — Ника, ассистентка по диабету. Классифицируешь сообщение и извлекаешь данные \
+о приёме пищи, если это запись.
 
-Правила:
-- should_log=true — если пользователь сообщает о конкретном приёме пищи, сахаре, \
-инсулине или доколке («съел», «сахар 6.2», «доколю 3 ЕД»).
-- is_reference_question=true — справочный вопрос по диабету или инсулинотерапии \
-(«сколько инъекций в день», «что такое гипогликемия», «как хранить инсулин»). \
-Не путай с записью приёма пищи.
-- should_log=false и is_reference_question=false — приветствия, «кто ты» \
-и прочий диалог.
+Правила классификации (взаимоисключающие):
+- should_log=true — пользователь фиксирует КОНКРЕТНЫЙ приём: что съел, сахар сейчас, \
+доколку («съел банан», «сахар 6.2», «доколю 3 ЕД на ужин»).
+- is_reference_question=true — справочный вопрос БЕЗ записи приёма: «сколько инъекций \
+в день», «что такое гипогликемия», «как хранить инсулин», «сколько раз колоть».
+- should_log=false и is_reference_question=false — приветствие, «ты кто», small talk.
+
+Важно: упоминание инсулина/инъекций в ВОПРОСЕ — is_reference_question, не should_log.
+should_log и is_reference_question не могут быть true одновременно.
+
+Примеры:
+- «Съел банан 120 г, сахар 5.8» → should_log=true, is_reference_question=false
+- «Сколько инъекций инсулина необходимо в день?» → should_log=false, \
+is_reference_question=true
+- «Что такое гипогликемия?» → should_log=false, is_reference_question=true
+- «Привет, ты кто?» → should_log=false, is_reference_question=false
+- «Доколю 3 ЕД за 15 мин, овсянка 200 г» → should_log=true, is_reference_question=false
+
+Правила извлечения (если should_log=true):
 - needs_clarification=true — только если продукт совсем не определить.
 - Если источник — описание фото, оцени порцию, БЖУ и ХЕ по видимому размеру.
 - product и quantity — только на русском языке.
