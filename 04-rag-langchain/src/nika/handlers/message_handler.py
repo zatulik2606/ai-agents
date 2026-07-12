@@ -15,6 +15,8 @@ from nika.services.meal_report import MealReport
 from nika.services.rag_service import RagService
 from nika.services.transcribe_client import TranscribeClient
 
+RAG_STATUS_TEXT = "Ищу в руководстве…"
+
 logger = logging.getLogger(__name__)
 
 
@@ -168,7 +170,7 @@ class MessageHandler:
         history = self._history.get(user_id)
 
         try:
-            answer = await self._handle_message(text, history)
+            answer = await self._handle_message(text, history, message)
         except Exception:
             logger.exception("LLM error for user_id=%s", user_id)
             await message.answer("Не удалось получить ответ. Попробуй позже.")
@@ -241,7 +243,7 @@ class MessageHandler:
 
         try:
             transcript = await self._transcribe.transcribe(downloaded.read())
-            answer = await self._handle_message(transcript, history)
+            answer = await self._handle_message(transcript, history, message)
         except Exception:
             logger.exception("Voice error for user_id=%s", user_id)
             await message.answer("Не удалось распознать голос. Попробуй ещё раз.")
@@ -254,12 +256,24 @@ class MessageHandler:
 
         await message.answer(answer)
 
-    async def _handle_message(self, text: str, history: list[BaseMessage]) -> str:
+    async def _handle_message(
+        self,
+        text: str,
+        history: list[BaseMessage],
+        message: Message | None = None,
+    ) -> str:
         extraction = (await self._llm.extract_meal(text)).sanitize()
         if extraction.should_log:
             return self._process_extraction(extraction)
         if extraction.is_reference_question:
-            return await self._rag.aanswer(text, history)
+            status = None
+            if message is not None:
+                status = await message.answer(RAG_STATUS_TEXT)
+            try:
+                return await self._rag.aanswer(text, history)
+            finally:
+                if status is not None:
+                    await status.delete()
         return await self._llm.ask(text, history)
 
     def _process_photo_extraction(self, extraction: MealExtraction) -> str:
