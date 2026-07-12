@@ -7,6 +7,7 @@ from aiogram import Bot, Dispatcher
 from nika.config import Config
 from nika.handlers.message_handler import MessageHandler
 from nika.services.chat_history import ChatHistory
+from nika.services.indexer import Indexer
 from nika.services.insulin_calculator import InsulinCalculator
 from nika.services.llm_client import LlmClient
 from nika.services.meal_log import MealLogStore
@@ -47,6 +48,12 @@ async def main() -> None:
         config.retriever_k,
         config.openai_base_url,
     )
+    try:
+        await Indexer(config).aload_chunks()
+    except FileNotFoundError as error:
+        logger.warning("PDF load skipped: %s", error)
+    except Exception:
+        logger.exception("PDF load failed")
     logger.info("Ника: starting polling...")
     await dp.start_polling(bot)
 
