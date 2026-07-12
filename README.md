@@ -13,7 +13,7 @@
 | М01 | Основы LLM и стандартные API | ✅ |
 | М02 | AI-driven разработка с Cursor | ✅ |
 | М03 | Мультимодальность и локальный запуск LLM | ✅ |
-| М04 | RAG с LangChain: от теории к практике | ⬜ |
+| М04 | RAG с LangChain: от теории к практике | ✅ |
 | М05 | Мониторинг и оценка качества RAG-систем | ⬜ |
 | М06 | Advanced RAG | ⬜ |
 | М07 | Агенты с LangChain и LangGraph | ⬜ |
@@ -33,7 +33,7 @@ ai-agents/
 ├── 01-llm-api/   # М01: CLI LLM-бот (OpenRouter) ✅
 ├── 02-aidd/      # М02: Telegram-бот «Ника» (aiogram + OpenRouter) ✅
 ├── 03-multimodal/ # М03: мультимодальный бот (текст, фото, голос) ✅
-├── m04/          # М04: RAG с LangChain
+├── 04-rag-langchain/ # М04: RAG-бот (LangChain + PDF) ✅
 ├── m05/          # М05: Мониторинг и оценка качества RAG-систем
 ├── m06/          # М06: Advanced RAG
 ├── m07/          # М07: Агенты с LangChain и LangGraph
@@ -77,6 +77,15 @@ make run
 cd 03-multimodal
 make install
 # создайте .env на основе .env.example (TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY)
+make run
+```
+
+### М04 — RAG-бот «Ника»
+
+```bash
+cd 04-rag-langchain
+cp .env.example .env
+# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY; PDF в data/
 make run
 ```
 
