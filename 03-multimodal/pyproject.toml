@@ -1,0 +1,29 @@
+[project]
+name = "nika"
+version = "0.1.0"
+description = "Ника — Telegram LLM-ассистент"
+requires-python = ">=3.12"
+dependencies = [
+    "aiogram>=3.29.1",
+    "openai>=2.45.0",
+    "python-dotenv>=1.2.2",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.2.0",
+    "ruff>=0.15.21",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+mypy_path = "src"
+packages = ["nika"]
