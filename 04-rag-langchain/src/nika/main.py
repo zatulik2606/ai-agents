@@ -61,9 +61,10 @@ async def main() -> None:
         config.model_audio,
     )
     logger.info(
-        "RAG config: pdf=%s embedding=%s retriever_k=%s openai_base_url=%s",
+        "RAG config: pdf=%s embedding=%s model=%s retriever_k=%s openai_base_url=%s",
         config.data_pdf,
         config.model_embedding,
+        config.model_rag,
         config.retriever_k,
         config.openai_base_url,
     )

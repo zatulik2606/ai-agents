@@ -143,8 +143,8 @@ class RagService:
 
     def _chat_llm(self) -> ChatOpenAI:
         return ChatOpenAI(
-            model=self._config.model_text,
-            api_key=self._config.openrouter_api_key,
-            base_url=self._config.llm_base_url,
+            model=self._config.model_rag,
+            api_key=self._config.openai_api_key,
+            base_url=self._config.openai_base_url,
             temperature=0,
         )

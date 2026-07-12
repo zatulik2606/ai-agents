@@ -34,6 +34,7 @@ DEFAULT_SYSTEM_PROMPT = """\
 DEFAULT_MODEL_TEXT = "openai/gpt-4o-mini"
 DEFAULT_MODEL_AUDIO = "openai/whisper-1"
 DEFAULT_MODEL_EMBEDDING = "openai/text-embedding-3-small"
+DEFAULT_MODEL_RAG = "google/gemini-2.5-flash"
 DEFAULT_DATA_PDF = (
     "data/rukovodstvo_dlya_detei_i_ih_roditelei_saharnii_diabet_1_tipa_"
     "chto_neobhodimo_znat_178.pdf"
@@ -67,6 +68,7 @@ class Config:
     openai_base_url: str
     openai_api_key: str
     model_embedding: str
+    model_rag: str
     retriever_k: int
     data_pdf: str
 
@@ -108,6 +110,7 @@ class Config:
             openai_base_url=_openai_base_url(provider),
             openai_api_key=_openai_api_key(provider),
             model_embedding=os.getenv("MODEL_EMBEDDING", DEFAULT_MODEL_EMBEDDING),
+            model_rag=_model_rag(provider, model_text),
             retriever_k=_int_env("RETRIEVER_K", DEFAULT_RETRIEVER_K),
             data_pdf=os.getenv("DATA_PDF", DEFAULT_DATA_PDF),
         )
@@ -140,6 +143,21 @@ def _openai_api_key(provider: str) -> str:
     if audio_key:
         return audio_key
     return _api_key(provider)
+
+
+def _model_rag(provider: str, model_text: str) -> str:
+    explicit = os.getenv("MODEL_RAG")
+    if explicit:
+        return explicit
+    if _is_rag_hybrid(provider):
+        return os.getenv("MODEL_IMAGE", DEFAULT_MODEL_RAG)
+    return model_text
+
+
+def _is_rag_hybrid(provider: str) -> bool:
+    openai_url = _openai_base_url(provider)
+    llm_url = _base_url(provider)
+    return openai_url.rstrip("/") != llm_url.rstrip("/")
 
 
 def _api_key(provider: str) -> str:
