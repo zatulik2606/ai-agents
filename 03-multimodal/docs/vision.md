@@ -146,7 +146,8 @@
 ├── docs/
 │   ├── idea.md
 │   ├── vision.md
-│   └── tasklist.md
+│   ├── tasklist.md
+│   └── prompting.md
 ├── pyproject.toml
 ├── Makefile
 └── Dockerfile
@@ -253,12 +254,56 @@
 
 ---
 
-## 7. Работа с аудио
+## 7. Работа с аудио (голосовые сообщения)
 
-`TranscribeClient.transcribe(file_path)` → текст → поток как для текстового сообщения.
+### Выбор подхода
 
-- Модель: `MODEL_AUDIO` (Whisper или аналог)
-- Провайдер: `AUDIO_LLM_BASE_URL` / `AUDIO_OPENROUTER_API_KEY` или общий `LLM_BASE_URL`
+| Подход | Решение | Почему не выбрали |
+|--------|---------|-------------------|
+| Telegram Bot API | ❌ | Нет API транскрибации для ботов |
+| Whisper API (облако) | ✅ **наш выбор** | Простота, русский, ~$0.006/мин |
+| Локальный Whisper / Vosk | запасной | Приватность, но сложнее и нужен GPU |
+| Yandex SpeechKit | запасной | Лучший русский, но ~1 ₽/мин и IAM |
+| Gemini multimodal STT | ❌ | Overkill и дороже для чистого STT |
+
+### Архитектура
+
+`TranscribeClient` — отдельный сервис, 1 класс = 1 файл.
+
+```
+голосовое (F.voice)
+    → bot.download_file(.ogg)
+    → TranscribeClient.transcribe(bytes, language="ru")
+    → transcript
+    → _handle_message() — тот же поток, что для текста
+        → extract_meal() → MealLogStore → InsulinCalculator
+        → или ask() для свободного вопроса
+```
+
+### Конфигурация (гибрид)
+
+| Переменная | Пример | Назначение |
+|------------|--------|------------|
+| `MODEL_AUDIO` | `openai/whisper-1` | Модель STT |
+| `AUDIO_LLM_BASE_URL` | `https://openrouter.ai/api/v1` | Endpoint Whisper |
+| `AUDIO_OPENROUTER_API_KEY` | `sk-or-...` | Ключ (отдельно от text/image) |
+
+В гибридном режиме текст — Ollama локально, STT — OpenRouter.
+
+### Детали реализации
+
+- Формат Telegram: Ogg Opus (`.ogg`) — **без конвертации**, Whisper принимает напрямую
+- Язык: `language="ru"` — явно, не auto-detect
+- Лимит бота: 20 MB на файл (для голосовых достаточно, обычно < 1 мин)
+- Пользователю: «Слушаю голосовое, подожди немного…» на время STT
+- Ошибки: лог + «Не удалось распознать голос» — бот не падает
+- История: `[голос] {transcript}` сохраняется в `ChatHistory`
+
+### Стоимость и приватность
+
+- ~$0.006/мин (~0.5 ₽ за 30-секундное голосовое)
+- Аудио передаётся в OpenRouter → OpenAI Whisper
+- Альтернатива для 152-ФЗ: локальный `faster-whisper` на своём GPU
 
 ---
 

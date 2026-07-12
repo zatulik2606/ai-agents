@@ -25,11 +25,12 @@
 | 14 | Фото продуктов | ✅ Готово | Gemini VLM → учёт + расчёт инсулина |
 | 15 | Транскрипция аудио | ✅ Готово | Whisper → текст → учёт |
 | 16 | Отчёты и команды | ✅ Готово | /report_day, /report_week, /coeffs |
+| 17 | Транскрибация голосовых | ✅ Готово | Whisper API, language=ru, голос → учёт |
 
 **Легенда:** ⬜ Ожидает · 🔄 В работе · ✅ Готово · ⛔ Заблокировано
 
 **Текущая итерация:** —  
-**Завершено:** 17 / 17
+**Завершено:** 18 / 18
 
 ---
 
@@ -202,3 +203,21 @@
 - [x] Обновить `/help` и `/example` под новый функционал
 
 **Проверка:** `/report_day` выдаёт сводку; `/report_week` — сводку + анализ; `/coeffs` — значения из `.env`.
+
+---
+
+### 17. Транскрибация голосовых сообщений
+
+**Подход:** OpenAI Whisper API через OpenRouter (`openai/whisper-1`, `language=ru`).
+Подробнее — `idea.md` §Голосовые, `vision.md` §7.
+
+- [x] `TranscribeClient` — async, OpenAI-compatible `audio.transcriptions.create()`
+- [x] Конфиг: `MODEL_AUDIO`, `AUDIO_LLM_BASE_URL`, `AUDIO_OPENROUTER_API_KEY`
+- [x] `language="ru"` в запросе Whisper
+- [x] Обработчик `handle_voice` в `message_handler`: download → transcribe → `_handle_message()`
+- [x] Статус «Слушаю голосовое…» + обработка ошибок без падения бота
+- [x] Транскрипт в логах; запись еды → JSON + ответ с ХЕ
+- [x] Обновить `idea.md` и `vision.md` (подход STT)
+
+**Проверка:** надиктовать «съел банан 120 г, сахар 5.8» → транскрипт в логах,
+запись в `data/meals.json`, ответ Нике с ХЕ и рекомендацией.

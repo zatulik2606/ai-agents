@@ -23,6 +23,7 @@ class TranscribeClient:
         response = await self._client.audio.transcriptions.create(
             model=self._model,
             file=buffer,
+            language="ru",
         )
         text = response.text.strip()
         if not text:
