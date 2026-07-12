@@ -5,8 +5,22 @@ from openai.types.chat import ChatCompletionMessageParam
 
 from nika.config import Config
 from nika.services.chat_history import ChatMessage
+from nika.services.meal_log import MealExtraction
 
 logger = logging.getLogger(__name__)
+
+EXTRACTION_SYSTEM_PROMPT = """\
+Ты — Ника, ассистентка по диабету. Извлекаешь данные о приёме пищи из сообщения.
+
+Правила:
+- should_log=true — если пользователь сообщает о еде, сахаре, инсулине или доколке.
+- should_log=false — для общих вопросов, приветствий, «кто ты» и т.п.
+- needs_clarification=true — если should_log=true, но нет продукта/блюда.
+- Оцени ХЕ (1 ХЕ ≈ 12 г углеводов), если можно.
+- reply_text — ответ от первого лица, женский род, спокойно и поддерживающе.
+- В reply_text всегда добавляй дисклеймер:
+  «Информация справочная и не заменяет консультацию специалиста».
+- meal_type: breakfast, lunch, dinner, snack или null."""
 
 
 class LlmClient:
@@ -35,3 +49,18 @@ class LlmClient:
         )
         content = response.choices[0].message.content
         return content or ""
+
+    async def extract_meal(self, text: str) -> MealExtraction:
+        logger.info("LLM extract_meal: model=%s", self._model)
+        response = await self._client.beta.chat.completions.parse(
+            model=self._model,
+            messages=[
+                {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
+                {"role": "user", "content": text},
+            ],
+            response_format=MealExtraction,
+        )
+        parsed = response.choices[0].message.parsed
+        if parsed is None:
+            raise ValueError("LLM returned empty meal extraction")
+        return parsed

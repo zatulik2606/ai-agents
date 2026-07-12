@@ -39,6 +39,10 @@ class Config:
     llm_model: str
     system_prompt: str
     data_file: str
+    carb_ratio: float
+    insulin_sensitivity: float
+    target_glucose: float
+    fpu_ratio: float
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -54,4 +58,15 @@ class Config:
             llm_model=os.getenv("LLM_MODEL", "openai/gpt-4o-mini"),
             system_prompt=os.getenv("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT),
             data_file=os.getenv("DATA_FILE", "data/meals.json"),
+            carb_ratio=_float_env("CARB_RATIO", 12.0),
+            insulin_sensitivity=_float_env("INSULIN_SENSITIVITY", 2.0),
+            target_glucose=_float_env("TARGET_GLUCOSE", 5.0),
+            fpu_ratio=_float_env("FPU_RATIO", 10.0),
         )
+
+
+def _float_env(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return float(raw)

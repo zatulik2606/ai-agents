@@ -4,6 +4,8 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 
+from pydantic import BaseModel, Field
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,6 +24,49 @@ class MealEntry:
     bolus_minutes_before: int | None = None
     meal_type: str | None = None
     notes: str = ""
+
+
+class MealExtraction(BaseModel):
+    should_log: bool = Field(
+        description=(
+            "True, если пользователь сообщает о приёме пищи, сахаре или инсулине"
+        ),
+    )
+    needs_clarification: bool = Field(
+        description="True, если для записи не хватает ключевых данных",
+    )
+    product: str | None = None
+    quantity: str | None = None
+    proteins_g: float | None = None
+    fats_g: float | None = None
+    carbs_g: float | None = None
+    bread_units: float | None = None
+    sugar_before: float | None = None
+    sugar_after: float | None = None
+    insulin_dose: float | None = None
+    bolus_minutes_before: int | None = None
+    meal_type: str | None = None
+    notes: str = ""
+    reply_text: str = Field(
+        description="Ответ Нике: спокойно, от женского лица, с дисклеймером",
+    )
+
+    def to_meal_entry(self) -> MealEntry:
+        return MealEntry(
+            datetime=datetime.now(),
+            product=self.product or "не указано",
+            quantity=self.quantity or "не указано",
+            proteins_g=self.proteins_g,
+            fats_g=self.fats_g,
+            carbs_g=self.carbs_g,
+            bread_units=self.bread_units,
+            sugar_before=self.sugar_before,
+            sugar_after=self.sugar_after,
+            insulin_dose=self.insulin_dose,
+            bolus_minutes_before=self.bolus_minutes_before,
+            meal_type=self.meal_type,
+            notes=self.notes,
+        )
 
 
 class MealLogStore:

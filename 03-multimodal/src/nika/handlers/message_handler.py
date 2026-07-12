@@ -4,9 +4,10 @@ from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
 
-from nika.services.chat_history import ChatHistory
+from nika.services.chat_history import ChatHistory, ChatMessage
+from nika.services.insulin_calculator import InsulinCalculator
 from nika.services.llm_client import LlmClient
-from nika.services.meal_log import MealLogStore
+from nika.services.meal_log import MealExtraction, MealLogStore
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +18,12 @@ class MessageHandler:
         llm: LlmClient,
         history: ChatHistory,
         meal_log: MealLogStore,
+        insulin: InsulinCalculator,
     ) -> None:
         self._llm = llm
         self._history = history
         self._meal_log = meal_log
+        self._insulin = insulin
         self.router = Router()
 
     def register(self) -> Router:
@@ -62,10 +65,10 @@ class MessageHandler:
 
     async def handle_example(self, message: Message) -> None:
         await message.answer(
-            "Примеры вопросов:\n\n"
+            "Примеры:\n\n"
+            "• Съел овсянку 200 г, сахар 6.2, завтрак\n"
             "• Сколько ХЕ в банане 120 г?\n"
-            "• Как посчитать доколку на 2 БЖЕ при коэффициенте 0.5?\n"
-            "• Что учесть в питании при овсянке на молоке?"
+            "• Как посчитать доколку на 2 БЖЕ при коэффициенте 0.5?"
         )
 
     async def handle_text(self, message: Message) -> None:
@@ -79,7 +82,7 @@ class MessageHandler:
         history = self._history.get(user_id)
 
         try:
-            answer = await self._llm.ask(text, history)
+            answer = await self._handle_message(text, history)
         except Exception:
             logger.exception("LLM error for user_id=%s", user_id)
             await message.answer("Не удалось получить ответ. Попробуй позже.")
@@ -90,3 +93,28 @@ class MessageHandler:
         self._history.add(user_id, "assistant", answer)
 
         await message.answer(answer)
+
+    async def _handle_message(self, text: str, history: list[ChatMessage]) -> str:
+        extraction = await self._llm.extract_meal(text)
+
+        if extraction.should_log:
+            if extraction.needs_clarification:
+                return extraction.reply_text
+
+            self._meal_log.append(extraction.to_meal_entry())
+            return self._build_log_reply(extraction)
+
+        return await self._llm.ask(text, history)
+
+    def _build_log_reply(self, extraction: MealExtraction) -> str:
+        recommendation = self._insulin.recommend(
+            carbs_g=extraction.carbs_g,
+            bread_units=extraction.bread_units,
+            proteins_g=extraction.proteins_g,
+            fats_g=extraction.fats_g,
+            sugar_before=extraction.sugar_before,
+            bolus_minutes_before=extraction.bolus_minutes_before,
+        )
+        if recommendation is None:
+            return extraction.reply_text
+        return f"{extraction.reply_text}\n\n{recommendation.format_message()}"
