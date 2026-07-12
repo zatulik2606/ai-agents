@@ -155,7 +155,7 @@
 ### 12. Расчёт инсулина
 
 - [x] `InsulinCalculator` — формула из `vision.md` §8
-- [x] Коэффициенты в `Config`: `CARB_RATIO`, `INSULIN_SENSITIVITY`, `TARGET_GLUCOSE`, `FPU_RATIO`
+- [x] Коэффициенты в `Config`: `CARB_RATIO`, `INSULIN_SENSITIVITY`, `TARGET_GLUCOSE_MIN`, `TARGET_GLUCOSE_MAX`, `FPU_RATIO`
 - [x] Рекомендация в ответе: доза + время доколки
 - [x] Дисклеймер в каждом ответе с рекомендацией по инсулину
 

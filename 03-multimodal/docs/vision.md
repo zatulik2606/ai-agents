@@ -55,6 +55,17 @@
 | `openrouter` | `https://openrouter.ai/api/v1` | Разработка, облако |
 | `ollama` | `http://localhost:11434/v1` | Продакшен, медданные локально |
 
+**Гибридный режим:** текст локально (Ollama), фото и structured extraction — в облаке:
+
+| Переменная | Назначение |
+|------------|------------|
+| `IMAGE_LLM_BASE_URL` | URL для vision и structured output |
+| `IMAGE_OPENROUTER_API_KEY` | API-ключ для image |
+| `AUDIO_LLM_BASE_URL` | URL для STT |
+| `AUDIO_OPENROUTER_API_KEY` | API-ключ для audio |
+
+Если `IMAGE_LLM_BASE_URL` ≠ `LLM_BASE_URL`, structured extraction и анализ отчётов идут через `MODEL_IMAGE`.
+
 ### Сборка и запуск
 
 | Инструмент | Назначение |
@@ -128,6 +139,7 @@
 │       ├── llm_client.py      # ask + extract_meal + analyze_photo
 │       ├── transcribe_client.py
 │       ├── meal_log.py        # MealLogStore + MealEntry
+│       ├── meal_report.py     # сводки за день / неделю
 │       └── insulin_calculator.py
 ├── data/
 │   └── meals.json             # учёт приёмов пищи (создаётся автоматически)
@@ -213,7 +225,7 @@
 - Вход: текст сообщения (или транскрипт аудио)
 - Выход: Pydantic-модель `MealExtraction` — поля `MealEntry` + `reply_text` + `needs_clarification`
 - API: `response_format` / JSON schema
-- Модель: `MODEL_TEXT`
+- Модель: `MODEL_TEXT` (или `MODEL_IMAGE` в гибридном режиме)
 
 **Поток текстового сообщения:**
 
@@ -225,12 +237,14 @@
 
 ### VLM — анализ фото
 
-`LlmClient.analyze_photo(image_bytes)`:
+`LlmClient.analyze_photo(image_bytes, caption)`:
 
+- Два шага: vision описывает фото → structured extraction парсит в `MealExtraction`
+- Если есть подпись к фото — vision пропускается, парсинг идёт по тексту подписи
 - Фото продукта/блюда (не упаковки) → base64 в multimodal message
 - Модель оценивает тип продукта, размер порции, состав, БЖУ/ХЕ
 - Результат → `MealExtraction` → дальше тот же поток, что для текста
-- Модель: `MODEL_IMAGE`
+- Vision: `MODEL_IMAGE`; extraction: `MODEL_IMAGE` в гибридном режиме
 
 ### Ошибки
 
@@ -244,7 +258,7 @@
 `TranscribeClient.transcribe(file_path)` → текст → поток как для текстового сообщения.
 
 - Модель: `MODEL_AUDIO` (Whisper или аналог)
-- Провайдер: OpenRouter или локальный endpoint через `LLM_BASE_URL`
+- Провайдер: `AUDIO_LLM_BASE_URL` / `AUDIO_OPENROUTER_API_KEY` или общий `LLM_BASE_URL`
 
 ---
 
@@ -260,14 +274,17 @@
 |------------|--------|-------|
 | `CARB_RATIO` | 12 | г углеводов на 1 ЕД |
 | `INSULIN_SENSITIVITY` | 2.0 | на сколько ммоль/л снижает 1 ЕД |
-| `TARGET_GLUCOSE` | 5.0 | целевой сахар, ммоль/л |
+| `TARGET_GLUCOSE_MIN` | 5.0 | нижняя граница целевого сахара, ммоль/л |
+| `TARGET_GLUCOSE_MAX` | 10.0 | верхняя граница целевого сахара, ммоль/л |
 | `FPU_RATIO` | 10 | г (белки + жиры) на 1 БЖЕ для доколки |
 
 ### Формула (рекомендация, не назначение)
 
 ```
 доза_на_углеводы = углеводы_г / CARB_RATIO
-коррекция = (сахар_до − TARGET_GLUCOSE) / INSULIN_SENSITIVITY   # если сахар известен
+коррекция = 0, если TARGET_GLUCOSE_MIN ≤ сахар_до ≤ TARGET_GLUCOSE_MAX
+коррекция = (сахар_до − TARGET_GLUCOSE_MAX) / INSULIN_SENSITIVITY, если сахар_до > MAX
+коррекция = (сахар_до − TARGET_GLUCOSE_MIN) / INSULIN_SENSITIVITY, если сахар_до < MIN
 доколка_на_БЖЕ = (белки + жиры) / FPU_RATIO
 итого = доза_на_углеводы + коррекция (+ доколка при необходимости)
 ```
@@ -285,7 +302,8 @@
 | Фото блюда | VLM → structured output → JSON → ответ |
 | Голосовое сообщение | STT → текст → тот же поток |
 | Свободный вопрос | `LlmClient.ask()` с историей диалога |
-| Отчёт за день / неделю | `/report day` / `/report week` → агрегация из JSON + LLM-анализ |
+| Отчёт за день | `/report_day` → агрегация из JSON |
+| Отчёт за неделю | `/report_week` → агрегация + `LlmClient.ask_brief()` (Gemini в гибриде) |
 | Коэффициенты | `/coeffs` — показать текущие значения |
 | Сброс диалога | `/reset` |
 | Сброс учёта | `/reset_log` |
@@ -303,14 +321,19 @@
 | `OPENROUTER_API_KEY` | — | API-ключ (пустой для Ollama) |
 | `LLM_PROVIDER` | `openrouter` | `openrouter` \| `ollama` |
 | `LLM_BASE_URL` | openrouter URL | URL API |
-| `MODEL_TEXT` | `openai/gpt-4o-mini` | Текст + structured output |
-| `MODEL_IMAGE` | `openai/gpt-4o-mini` | Vision |
+| `MODEL_TEXT` | `openai/gpt-4o-mini` | Текст, диалог |
+| `MODEL_IMAGE` | `openai/gpt-4o-mini` | Vision + structured extraction (гибрид) |
 | `MODEL_AUDIO` | `openai/whisper-1` | Транскрипция |
+| `IMAGE_LLM_BASE_URL` | = `LLM_BASE_URL` | URL для vision / extraction |
+| `IMAGE_OPENROUTER_API_KEY` | = `OPENROUTER_API_KEY` | Ключ для image |
+| `AUDIO_LLM_BASE_URL` | = `LLM_BASE_URL` | URL для STT |
+| `AUDIO_OPENROUTER_API_KEY` | = `OPENROUTER_API_KEY` | Ключ для audio |
 | `SYSTEM_PROMPT` | дефолт в `config.py` | Роль (опционально) |
 | `DATA_FILE` | `data/meals.json` | Файл учёта |
 | `CARB_RATIO` | `12` | Углеводный коэффициент |
 | `INSULIN_SENSITIVITY` | `2.0` | Чувствительность к инсулину |
-| `TARGET_GLUCOSE` | `5.0` | Целевой сахар |
+| `TARGET_GLUCOSE_MIN` | `5.0` | Целевой сахар, мин |
+| `TARGET_GLUCOSE_MAX` | `10.0` | Целевой сахар, макс |
 | `FPU_RATIO` | `10` | Коэффициент БЖЕ |
 
 ---
