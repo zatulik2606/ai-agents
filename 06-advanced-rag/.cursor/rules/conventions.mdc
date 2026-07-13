@@ -1,0 +1,54 @@
+---
+description: Правила разработки кода проекта — KISS, ООП, слои
+alwaysApply: true
+---
+
+# Conventions
+
+Источник истины: `docs/vision.md`. При неясности — сверяйся с документом, не выдумывай архитектуру.
+
+## Главное
+
+- **KISS / YAGNI**: только код, нужный для работы бота. Без абстракций «на будущее».
+- **1 класс = 1 файл**: `rag_service.py` → `class RagService`. `dataclass`/`TypedDict` — исключение, рядом с использованием.
+- **Минимум слоёв**: `handlers/` → `services/` → внешние API. `config.py` — env. `main.py` — точка входа.
+
+## RAG
+
+- LangChain-цепочки — в `services/`; LCEL-стиль, без лишних обёрток над retriever.
+- Единственное хранилище — `InMemoryVectorStore` + in-memory `BM25Retriever` по тем же чанкам.
+- Режим retrieval — `RAG_RETRIEVAL_MODE` (`semantic` | `hybrid` | `hybrid_rerank`); детали — `vision.md` §11.
+- Query transformation **обязателен** и выполняется до retrieval — не удаляй при добавлении hybrid/reranker.
+- Новые классы: `hybrid_retriever.py`, `reranker.py` — по одному классу на файл.
+- Sync LangChain / sentence-transformers — через `asyncio.to_thread`, не блокируй event loop.
+- `RagService` возвращает ответ **и** documents; форматирование источников — в handler (см. `vision.md` §14).
+- Референс hybrid + reranker — `docs/references/advanced-hybrid-rag.ipynb`.
+
+## Мониторинг и качество
+
+- LangSmith трейсинг — только через `LANGSMITH_*` в `.env`, без ручного tracing-кода.
+- `dataset_synthesizer.py` и `evaluation.py` — отдельные сервисы в `services/`, без DI-контейнеров.
+- RAGAS-модели и провайдер embeddings — env-переменные; детали — `vision.md` §14.
+- Evaluation должен использовать тот же `RAG_RETRIEVAL_MODE`, что и бот.
+
+## Код
+
+- Python 3.12, весь I/O — **async** (`aiogram`, `openai` async client).
+- Типы везде; код должен проходить **mypy** strict и **ruff**.
+- Именование: `snake_case` (файлы, функции), `PascalCase` (классы).
+
+## Запрещено без явного запроса
+
+- Repository, Factory, DI-контейнеры, лишние интерфейсы
+- БД, Redis, очереди, ORM, веб-фреймворки
+- Персистентные vector DB
+- Тесты, CI/CD
+
+## Зависимости
+
+Только через `uv` (`uv add`). Полный стек — `docs/vision.md` §1.
+
+## Изменения
+
+Новый класс → новый файл в правильном слое. Не раздувай существующие файлы.
+Спринт 5 **дополняет** предыдущие — не удаляй учёт, инсулин, фото, голос, мониторинг RAG без явного запроса.
