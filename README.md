@@ -98,6 +98,15 @@ cp .env.example .env
 make run
 ```
 
+### М06 — Advanced RAG
+
+```bash
+cd 06-advanced-rag
+cp .env.example .env
+# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY (см. README модуля)
+make run
+```
+
 ### Быстрый старт
 
 ```bash
