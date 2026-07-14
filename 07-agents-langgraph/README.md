@@ -1,0 +1,191 @@
+# Ника — Telegram-ассистент по диабету + RAG
+
+Telegram-бот: учёт питания и инсулина, фото/голос, отчёты и справочные ответы
+по PDF-руководству и JSON-справочникам через LangChain RAG.
+Мониторинг (LangSmith, источники) и оценка качества (RAGAS).
+
+## Требования
+
+- Python 3.12
+- [uv](https://docs.astral.sh/uv/)
+- Telegram Bot Token
+- OpenRouter API key (для RAG, vision, audio, RAGAS)
+- PDF и JSON в `data/` (см. раздел [Данные](#данные))
+
+## Быстрый старт
+
+```bash
+cp .env.example .env
+# заполнить TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY
+
+make run
+```
+
+При старте бот переиндексирует документы. В логах:
+
+```
+Vector index ready: document_count=...
+RAG config: pdf=... embedding=... model=...
+Monitoring: show_sources=false langsmith=enabled dataset=05-rag-qa-dataset
+```
+
+## Данные
+
+Каталог `data/`:
+
+| Файл | Назначение |
+|------|------------|
+| `rukovodstvo_..._178.pdf` | Основное PDF-руководство (105 стр.) |
+| `diabetes_*.json` | Готовые справочные тексты для RAG |
+| `meals.json` | Учёт приёмов пищи (создаётся ботом) |
+
+Если PDF отсутствует — скопируй из референсного проекта `05-monitoring-qa/data/`
+или положи свой файл и укажи путь в `DATA_PDF`.
+
+## Переменные RAG
+
+| Переменная | Назначение |
+|------------|------------|
+| `OPENAI_BASE_URL` | OpenRouter для LangChain |
+| `MODEL_EMBEDDING` | Модель эмбеддингов |
+| `EMBEDDING_PROVIDER` | `openai` или `huggingface` |
+| `HUGGINGFACE_EMBEDDING_MODEL` | Модель HF (если `EMBEDDING_PROVIDER=huggingface`) |
+| `HUGGINGFACE_DEVICE` | `cpu` или `mps` / `cuda` |
+| `MODEL_RAG` | LLM для RAG (в гибриде дефолт — `MODEL_IMAGE`) |
+| `RAG_RETRIEVAL_MODE` | `semantic` \| `hybrid` \| `hybrid_rerank` |
+| `SEMANTIC_RETRIEVER_K` | Top-K semantic search |
+| `BM25_RETRIEVER_K` | Top-K BM25 |
+| `HYBRID_RETRIEVER_K` | Top-K после fusion |
+| `RERANKER_FETCH_K` | Кандидатов на вход reranker |
+| `RERANKER_K` | Top-K после reranker |
+| `MODEL_CROSSENCODER` | Модель cross-encoder |
+| `DATA_PDF` | Путь к PDF |
+| `SHOW_SOURCES` | `true` — показывать источники в ответах |
+
+### Режимы Advanced RAG
+
+| Режим | Описание |
+|-------|----------|
+| `semantic` | Только vector search |
+| `hybrid` | Semantic + BM25 → RRF fusion |
+| `hybrid_rerank` | Hybrid → cross-encoder reranker |
+
+```env
+RAG_RETRIEVAL_MODE=hybrid
+EMBEDDING_PROVIDER=huggingface
+HUGGINGFACE_EMBEDDING_MODEL=intfloat/multilingual-e5-base
+HUGGINGFACE_DEVICE=cpu
+```
+
+## Мониторинг и оценка качества
+
+### Источники в ответах
+
+```env
+SHOW_SOURCES=true
+```
+
+Бот добавляет блок «📚 Источники: …» с файлом и страницами retrieved chunks.
+
+### LangSmith трейсинг
+
+```env
+LANGSMITH_API_KEY=lsv2_...
+LANGSMITH_TRACING_V2=true
+LANGSMITH_PROJECT=06-rag-assistant
+```
+
+RAG-запросы автоматически попадают в LangSmith UI — код менять не нужно.
+
+### Синтез Q&A-датасета
+
+```bash
+make dataset          # синтез из PDF + JSON → datasets/05-rag-qa-dataset.json
+make dataset-upload   # загрузка в LangSmith (нужен LANGSMITH_API_KEY)
+```
+
+Синтез берёт 2 случайных чанка из каждого PDF и готовые Q&A из `diabetes_*.json`.
+
+### Evaluation через RAGAS
+
+В Telegram:
+
+```
+/evaluate_dataset
+/evaluate_dataset my-dataset-name
+```
+
+Требуется: `LANGSMITH_API_KEY`, `OPENROUTER_API_KEY`, проиндексированный RAG,
+датасет в LangSmith (`LANGSMITH_DATASET`).
+
+**6 метрик RAGAS:**
+
+| Метрика | Что измеряет |
+|---------|--------------|
+| faithfulness | Нет галлюцинаций вне контекста |
+| answer_relevancy | Релевантность ответа вопросу |
+| answer_correctness | Правильность vs эталон |
+| answer_similarity | Похожесть на эталон |
+| context_recall | Полнота найденного контекста |
+| context_precision | Точность retrieval |
+
+Результаты загружаются в LangSmith как feedback.
+
+## Гибрид Ollama + OpenRouter
+
+```env
+LLM_PROVIDER=ollama
+LLM_BASE_URL=http://localhost:11434/v1
+MODEL_TEXT=deepseek-r1:latest
+
+OPENAI_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_API_KEY=sk-or-...
+MODEL_IMAGE=google/gemini-2.5-flash
+```
+
+Диалог и учёт — Ollama; RAG, фото, голос — OpenRouter.
+
+## Docker
+
+```bash
+make docker-run
+```
+
+PDF и `meals.json` монтируются из `./data`. Для Ollama с хоста:
+
+```env
+LLM_BASE_URL=http://host.docker.internal:11434/v1
+```
+
+## Команды бота
+
+| Команда | Действие |
+|---------|----------|
+| `/index` | Переиндексация документов |
+| `/index_status` | Число чанков в индексе |
+| `/evaluate_dataset` | RAGAS-оценка датасета LangSmith |
+| `/report_day`, `/report_week` | Отчёты по учёту |
+| `/coeffs` | Коэффициенты расчёта инсулина |
+| `/reset` | Сброс истории диалога |
+| `/reset_log` | Сброс учёта приёмов пищи |
+| `/help`, `/example` | Справка и примеры |
+
+Справочный вопрос → RAG; запись о еде → учёт.
+
+## Устранение неполадок
+
+| Проблема | Решение |
+|----------|---------|
+| «PDF не найден» | Положи PDF в `data/`, проверь `DATA_PDF` |
+| «LangSmith API key не настроен» | Задай `LANGSMITH_API_KEY` в `.env` |
+| «Dataset not found» | `make dataset-upload` или укажи имя: `/evaluate_dataset имя` |
+| «Индекс пуст» | `/index` или перезапусти бота |
+| `TelegramConflictError` | Запущено два бота — оставь один `make run` |
+| Rate limit / 429 | Подожди и повтори; смени `RAGAS_LLM_MODEL` на платную модель |
+| Нет ключа OpenRouter | `OPENROUTER_API_KEY` нужен для RAGAS evaluation |
+
+## Документация
+
+- [docs/idea.md](docs/idea.md) — идея
+- [docs/vision.md](docs/vision.md) — архитектура
+- [docs/tasklist.md](docs/tasklist.md) — план итераций
