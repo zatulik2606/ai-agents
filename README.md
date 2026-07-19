@@ -19,7 +19,7 @@
 | М07 | Агенты с LangChain и LangGraph | ✅ |
 | М08 | Model Context Protocol (MCP) | ✅ |
 | М09 | Безопасность агентных систем | ✅ |
-| М10 | Оценка качества агентов | ⬜ |
+| М10 | Оценка качества агентов | ✅ |
 | М11 | Мультиагентные системы | ⬜ |
 
 **Легенда:** ✅ — выполнено · 🔄 — в работе · ⬜ — не начато
@@ -39,7 +39,7 @@ ai-agents/
 ├── 07-agents-langgraph/ # М07: ReAct-агент (LangChain/LangGraph) ✅
 ├── 08-mcp/       # М08: Model Context Protocol (MCP) ✅
 ├── 09-security/  # М09: Безопасность агентных систем (HITL, PII, limits) ✅
-├── m10/          # М10: Оценка качества агентов
+├── 10-agents-eval/ # М10: Оценка качества агентов (RAGAS, agentevals) ✅
 ├── m11/          # М11: Мультиагентные системы
 └── README.md
 ```
@@ -177,3 +177,28 @@ make run
 ```
 
 Примеры проверки: заказ расходников / регистрация CGM → кнопки Accept/Reject; в ответе номер карты маскируется.
+
+### М10 — Оценка качества агентов (`10-agents-eval/`)
+
+Как М09 + оценка: RAGAS (`/evaluate_dataset`) и e2e траектории агента (`agentevals` / pytest).
+
+```bash
+cd 10-agents-eval
+cp .env.example .env
+# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY
+# LANGSMITH_* — для RAGAS / трейсинга
+# опционально: MCP_SERVER_URL=http://127.0.0.1:8000/mcp
+# опционально: AGENT_RUN_LIMIT=5  (для e2e лучше >=5)
+# опционально: AGENTEVALS_LLM_MODEL=openai:gpt-4o
+
+# Terminal 1 — MCP-сервер
+make run-mcp-nika
+
+# Terminal 2 — Telegram-бот
+make run
+
+# e2e-тесты траекторий (отдельно от бота):
+make test-deterministic   # детерминированные проверки
+make test-llm-judge       # LLM-as-a-Judge
+make test-all             # все tests/
+```
