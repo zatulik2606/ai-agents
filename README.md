@@ -18,7 +18,7 @@
 | М06 | Advanced RAG | ✅ |
 | М07 | Агенты с LangChain и LangGraph | ✅ |
 | М08 | Model Context Protocol (MCP) | ✅ |
-| М09 | Безопасность агентных систем | ⬜ |
+| М09 | Безопасность агентных систем | ✅ |
 | М10 | Оценка качества агентов | ⬜ |
 | М11 | Мультиагентные системы | ⬜ |
 
@@ -38,7 +38,7 @@ ai-agents/
 ├── 06-advanced-rag/  # М06: Advanced RAG (hybrid retrieval, reranking) ✅
 ├── 07-agents-langgraph/ # М07: ReAct-агент (LangChain/LangGraph) ✅
 ├── 08-mcp/       # М08: Model Context Protocol (MCP) ✅
-├── m09/          # М09: Безопасность агентных систем
+├── 09-security/  # М09: Безопасность агентных систем (HITL, PII, limits) ✅
 ├── m10/          # М10: Оценка качества агентов
 ├── m11/          # М11: Мультиагентные системы
 └── README.md
@@ -156,3 +156,24 @@ make run
 ```
 
 Без `make run-mcp-nika` бот стартует, но MCP-tools недоступны (graceful degradation).
+
+### М09 — Безопасность агентных систем (`09-security/`)
+
+Как М08 + middleware безопасности: **HITL** (Accept/Reject), маскирование **PII**, лимиты `AGENT_RUN_LIMIT`.  
+Критичные MCP-tools: `order_care_product`, `register_cgm_sensor`.
+
+```bash
+cd 09-security
+cp .env.example .env
+# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY
+# опционально: MCP_SERVER_URL=http://127.0.0.1:8000/mcp
+# опционально: AGENT_RUN_LIMIT=3
+
+# Terminal 1 — MCP-сервер
+make run-mcp-nika
+
+# Terminal 2 — Telegram-бот
+make run
+```
+
+Примеры проверки: заказ расходников / регистрация CGM → кнопки Accept/Reject; в ответе номер карты маскируется.
