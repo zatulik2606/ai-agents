@@ -17,7 +17,7 @@
 | М05 | Мониторинг и оценка качества RAG-систем | ✅ |
 | М06 | Advanced RAG | ✅ |
 | М07 | Агенты с LangChain и LangGraph | ✅ |
-| М08 | Model Context Protocol (MCP) | ⬜ |
+| М08 | Model Context Protocol (MCP) | ✅ |
 | М09 | Безопасность агентных систем | ⬜ |
 | М10 | Оценка качества агентов | ⬜ |
 | М11 | Мультиагентные системы | ⬜ |
@@ -37,7 +37,7 @@ ai-agents/
 ├── 05-monitoring-qa/ # М05: мониторинг и оценка RAG (LangSmith, RAGAS) ✅
 ├── 06-advanced-rag/  # М06: Advanced RAG (hybrid retrieval, reranking) ✅
 ├── 07-agents-langgraph/ # М07: ReAct-агент (LangChain/LangGraph) ✅
-├── m08/          # М08: Model Context Protocol (MCP)
+├── 08-mcp/       # М08: Model Context Protocol (MCP) ✅
 ├── m09/          # М09: Безопасность агентных систем
 ├── m10/          # М10: Оценка качества агентов
 ├── m11/          # М11: Мультиагентные системы
