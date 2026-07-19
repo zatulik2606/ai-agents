@@ -1,0 +1,17 @@
+[project]
+name = "mcp-nika-agent"
+version = "0.1.0"
+description = "MCP-сервер Ники: расходники для диабета и КБЖУ еды"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=2.3.0",
+    "httpx>=0.28.0",
+]
+
+[project.scripts]
+mcp-nika-agent = "mcp_nika_agent:main"
+
+[build-system]
+requires = ["uv_build>=0.11.18,<0.12.0"]
+build-backend = "uv_build"
