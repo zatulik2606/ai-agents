@@ -46,88 +46,113 @@ ai-agents/
 
 ## Как запускать
 
-> Раздел будет дополняться по мере выполнения модулей.
+Общие требования: **Python 3.12**, [uv](https://docs.astral.sh/uv/), ключ [OpenRouter](https://openrouter.ai/).  
+С М02 нужен ещё **Telegram Bot Token**. Подробности — в README (или `.env.example`) каждого модуля.
 
-### Общие требования
+```bash
+git clone https://github.com/zatulik2606/ai-agents.git
+cd ai-agents
+```
 
-- Python 3.11+
-- [uv](https://docs.astral.sh/uv/) (рекомендуется) или pip
+### М01 — CLI LLM-бот (`01-llm-api/`)
 
-### М01 — CLI LLM-бот
+Консольный чат с LLM через OpenRouter (история диалога, `/stats`).
 
 ```bash
 cd 01-llm-api
 make setup
-# создайте .env с OPENROUTER_API_KEY (см. 01-llm-api/README.md)
+# создайте .env: OPENROUTER_API_KEY, MODEL_NAME (см. README модуля)
 make run
 ```
 
-### М02 — Telegram-бот «Ника»
+### М02 — Telegram-бот «Ника» (`02-aidd/`)
+
+Диалог в Telegram: system prompt, история, `/start` `/help` `/reset`.
 
 ```bash
 cd 02-aidd
-make install
-# создайте .env на основе .env.example (TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY)
+cp .env.example .env
+# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY
 make run
 ```
 
-### М03 — Мультимодальный бот «Ника»
+### М03 — Мультимодальность (`03-multimodal/`)
+
+Ника: текст, фото (vision), голос (STT), учёт еды и инсулина, отчёты.
 
 ```bash
 cd 03-multimodal
-make install
-# создайте .env на основе .env.example (TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY)
+cp .env.example .env
+# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY
+# опционально: MODEL_IMAGE / MODEL_AUDIO, гибрид Ollama
 make run
 ```
 
-### М04 — RAG-бот «Ника»
+### М04 — RAG с LangChain (`04-rag-langchain/`)
+
+Справочные ответы по PDF-руководству + маршрутизация учёт / RAG.
 
 ```bash
 cd 04-rag-langchain
 cp .env.example .env
-# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY; PDF в data/
+# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY; PDF в data/ (DATA_PDF)
 make run
 ```
 
-### М05 — Мониторинг и оценка RAG
+### М05 — Мониторинг и оценка (`05-monitoring-qa/`)
+
+Источники в ответах, LangSmith, синтез датасета, RAGAS (`/evaluate_dataset`).
 
 ```bash
 cd 05-monitoring-qa
 cp .env.example .env
-# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY, LANGSMITH_* (см. README модуля)
+# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY, LANGSMITH_API_KEY, LANGSMITH_TRACING_V2
+# PDF + diabetes_*.json в data/
 make run
+
+# датасет (опционально):
+make dataset && make dataset-upload
 ```
 
-### М06 — Advanced RAG
+### М06 — Advanced RAG (`06-advanced-rag/`)
+
+Hybrid retrieval (semantic + BM25) и cross-encoder rerank (`RAG_RETRIEVAL_MODE`).
 
 ```bash
 cd 06-advanced-rag
 cp .env.example .env
-# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY (см. README модуля)
+# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY; data/ как в М05
+# RAG_RETRIEVAL_MODE=semantic|hybrid|hybrid_rerank
 make run
 ```
 
-### М07 — Агенты с LangChain и LangGraph
+### М07 — Агенты LangChain / LangGraph (`07-agents-langgraph/`)
+
+ReAct-агент: tools `rag_search`, `glucose_unit_converter` + MemorySaver.
 
 ```bash
 cd 07-agents-langgraph
 cp .env.example .env
-# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY (см. README модуля)
+# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY; data/ как в М05–М06
 make run
 ```
 
-### Быстрый старт
+### М08 — Model Context Protocol (`08-mcp/`)
+
+Те же возможности, плюс MCP-tools: `search_products`, `food_nutrition`, `calculate_meal_bolus`.  
+Нужны **два терминала**: сначала MCP-сервер, потом бот.
 
 ```bash
-# Клонировать репозиторий
-git clone <url-репозитория>
-cd ai-agents
+cd 08-mcp
+cp .env.example .env
+# TELEGRAM_BOT_TOKEN, OPENROUTER_API_KEY
+# опционально: MCP_SERVER_URL=http://127.0.0.1:8000/mcp
 
-# Перейти в папку нужного модуля
-cd 01-llm-api
+# Terminal 1 — MCP-сервер (streamable-http :8000)
+make run-mcp-nika
 
-# Установить зависимости
-make setup
+# Terminal 2 — Telegram-бот
+make run
 ```
 
-Инструкции по запуску конкретных заданий — в README внутри папки соответствующего модуля.
+Без `make run-mcp-nika` бот стартует, но MCP-tools недоступны (graceful degradation).
