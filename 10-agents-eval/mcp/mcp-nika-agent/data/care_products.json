@@ -1,0 +1,202 @@
+[
+  {
+    "id": "contour-plus-one",
+    "type": "глюкометр",
+    "name": "Contour Plus One",
+    "brand": "Ascensia Contour",
+    "description": "Глюкометр с приложением Contour Diabetes. Второй шанс: можно добавить крови на ту же полоску.",
+    "compatibility": ["Contour Plus", "Contour Plus One test strips"],
+    "conditions": "Диапазон 0.6–33.3 ммоль/л; результат ~5 сек; память 800 измерений.",
+    "promo": "Часто в наборах стартовый комплект + полоски."
+  },
+  {
+    "id": "contour-plus-strips",
+    "type": "тест-полоски",
+    "name": "Contour Plus / Contour Plus One strips",
+    "brand": "Ascensia Contour",
+    "description": "Тест-полоски для Contour Plus и Contour Plus One. Технология Second-Chance sampling.",
+    "compatibility": ["Contour Plus", "Contour Plus One"],
+    "conditions": "Хранить при 5–30 °C, закрывать флакон; срок после вскрытия — по инструкции на упаковке.",
+    "promo": "Упаковки 25 / 50 шт."
+  },
+  {
+    "id": "accu-chek-guide",
+    "type": "глюкометр",
+    "name": "Accu-Chek Guide",
+    "brand": "Roche Accu-Chek",
+    "description": "Глюкометр с широким портом для полоски и подсветкой. Синхронизация с приложением mySugr / Accu-Chek.",
+    "compatibility": ["Accu-Chek Guide test strips"],
+    "conditions": "Результат за несколько секунд; большой дисплей.",
+    "promo": null
+  },
+  {
+    "id": "accu-chek-guide-strips",
+    "type": "тест-полоски",
+    "name": "Accu-Chek Guide strips",
+    "brand": "Roche Accu-Chek",
+    "description": "Полоски для Accu-Chek Guide; удобный захват и нанесение крови.",
+    "compatibility": ["Accu-Chek Guide"],
+    "conditions": "Не использовать с другими моделями Accu-Chek.",
+    "promo": "Упаковки 50 / 100 шт."
+  },
+  {
+    "id": "onetouch-select-plus",
+    "type": "глюкометр",
+    "name": "OneTouch Select Plus Flex",
+    "brand": "LifeScan OneTouch",
+    "description": "Глюкометр с цветовыми подсказками диапазона и Bluetooth для приложения OneTouch Reveal.",
+    "compatibility": ["OneTouch Select Plus strips"],
+    "conditions": "Диапазон типичный для бытовых глюкометров; калибровка по плазме.",
+    "promo": null
+  },
+  {
+    "id": "onetouch-select-plus-strips",
+    "type": "тест-полоски",
+    "name": "OneTouch Select Plus strips",
+    "brand": "LifeScan OneTouch",
+    "description": "Тест-полоски для OneTouch Select Plus / Select Plus Flex.",
+    "compatibility": ["OneTouch Select Plus", "OneTouch Select Plus Flex"],
+    "conditions": "Хранить в оригинальном флаконе, защищать от влаги.",
+    "promo": null
+  },
+  {
+    "id": "accu-chek-softclix",
+    "type": "ланцеты",
+    "name": "Accu-Chek Softclix",
+    "brand": "Roche Accu-Chek",
+    "description": "Ручка-прокалыватель Softclix и совместимые ланцеты; несколько уровней глубины.",
+    "compatibility": ["Accu-Chek Softclix lancets"],
+    "conditions": "Один ланцет — одно использование; менять регулярно для меньшей травмы кожи.",
+    "promo": null
+  },
+  {
+    "id": "freestyle-libre-2",
+    "type": "CGM",
+    "name": "FreeStyle Libre 2",
+    "brand": "Abbott FreeStyle",
+    "description": "Система флэш/непрерывного мониторинга глюкозы: сенсор на плече, сканирование ридером или смартфоном, опциональные тревоги.",
+    "compatibility": ["FreeStyle Libre 2 reader", "приложение LibreLink (где доступно)"],
+    "conditions": "Сенсор обычно до 14 дней; не все процедуры МРТ/диатермии совместимы — см. инструкцию.",
+    "promo": "Стартовые наборы сенсор + ридер."
+  },
+  {
+    "id": "freestyle-libre-3",
+    "type": "CGM",
+    "name": "FreeStyle Libre 3",
+    "brand": "Abbott FreeStyle",
+    "description": "Более компактный сенсор CGM с непрерывной передачей данных в приложение (где зарегистрирован).",
+    "compatibility": ["приложение FreeStyle Libre 3"],
+    "conditions": "Срок ношения сенсора — по локальной инструкции (часто до 14 дней).",
+    "promo": null
+  },
+  {
+    "id": "dexcom-g6",
+    "type": "CGM",
+    "name": "Dexcom G6",
+    "brand": "Dexcom",
+    "description": "CGM с датчиком, трансмиттером и отображением на приёмнике/смартфоне; интеграция с рядом помп и приложений.",
+    "compatibility": ["Dexcom G6 sensor", "Dexcom G6 transmitter", "Dexcom app / receiver"],
+    "conditions": "Сенсор обычно до 10 дней; нужна калибровка по инструкции модели/региона.",
+    "promo": null
+  },
+  {
+    "id": "medtronic-guardian-4",
+    "type": "CGM",
+    "name": "Guardian 4",
+    "brand": "Medtronic",
+    "description": "CGM Medtronic для использования с совместимыми помпами MiniMed (SmartGuard и др., по конфигурации).",
+    "compatibility": ["совместимые помпы MiniMed", "Guardian 4 sensor"],
+    "conditions": "Срок сенсора и калибровки — по инструкции системы.",
+    "promo": null
+  },
+  {
+    "id": "novopen-6",
+    "type": "инсулиновая ручка",
+    "name": "NovoPen 6",
+    "brand": "Novo Nordisk",
+    "description": "Многоразовая шприц-ручка с памятью доз (NFC) для картриджей Novo Nordisk.",
+    "compatibility": ["картриджи Novo Nordisk 3 мл", "иглы NovoFine / универсальные pen needles"],
+    "conditions": "Не делить ручку между людьми; хранение инсулина — по инструкции к препарату.",
+    "promo": null
+  },
+  {
+    "id": "humapen-savvio",
+    "type": "инсулиновая ручка",
+    "name": "HumaPen Savvio",
+    "brand": "Eli Lilly",
+    "description": "Многоразовая ручка для картриджей инсулина Lilly.",
+    "compatibility": ["картриджи Lilly 3 мл", "стандартные pen needles"],
+    "conditions": "Шаг дозирования и максимальная доза — по модели ручки.",
+    "promo": null
+  },
+  {
+    "id": "solostar-lantus",
+    "type": "инсулиновая ручка",
+    "name": "Lantus SoloStar",
+    "brand": "Sanofi",
+    "description": "Предзаполненная ручка с инсулином гларгин (базальный).",
+    "compatibility": ["иглы для SoloStar / универсальные pen needles"],
+    "conditions": "Не замораживать; после начала использования срок хранения открытой ручки — по инструкции.",
+    "promo": null
+  },
+  {
+    "id": "novorapid-flexpen",
+    "type": "инсулиновая ручка",
+    "name": "NovoRapid FlexPen",
+    "brand": "Novo Nordisk",
+    "description": "Предзаполненная ручка с инсулином аспарт (ультракороткий / короткий по классификации региона).",
+    "compatibility": ["NovoFine и совместимые иглы"],
+    "conditions": "Доза и время введения — только по назначению врача; это справочная карточка товара.",
+    "promo": null
+  },
+  {
+    "id": "medtronic-780g",
+    "type": "помпа",
+    "name": "MiniMed 780G",
+    "brand": "Medtronic",
+    "description": "Инсулиновая помпа с алгоритмом автоматической коррекции (SmartGuard) при совместимом CGM.",
+    "compatibility": ["Guardian 4 / совместимые сенсоры Medtronic", "инфузионные наборы Medtronic"],
+    "conditions": "Требует обучения в центре; расходники менять по графику.",
+    "promo": null
+  },
+  {
+    "id": "omnipod-5",
+    "type": "помпа",
+    "name": "Omnipod 5",
+    "brand": "Insulet",
+    "description": "Беструбная помпа (под) с автоматизированной подачей инсулина в совместимой конфигурации с CGM.",
+    "compatibility": ["Omnipod 5 Pods", "совместимый контроллер / смартфон", "ряд CGM по региону"],
+    "conditions": "Под обычно до 3 дней; наличие в регионе уточнять у дистрибьютора.",
+    "promo": null
+  },
+  {
+    "id": "medtronic-infusion-set",
+    "type": "расходник помпы",
+    "name": "MiniMed Quick-set / Silhouette (типовые наборы)",
+    "brand": "Medtronic",
+    "description": "Инфузионные наборы для помп MiniMed: канюля под кожу + трубка.",
+    "compatibility": ["помпы MiniMed совместимой серии"],
+    "conditions": "Смена набора обычно каждые 2–3 дня; соблюдать гигиену места установки.",
+    "promo": "Наборы по 10 шт."
+  },
+  {
+    "id": "omnipod-pods",
+    "type": "расходник помпы",
+    "name": "Omnipod Pods",
+    "brand": "Insulet",
+    "description": "Одноразовые поды для систем Omnipod / Omnipod 5.",
+    "compatibility": ["Omnipod Dash / Omnipod 5 — по маркировке пода"],
+    "conditions": "Не использовать повреждённый под; следить за адгезией и сроком ношения.",
+    "promo": null
+  },
+  {
+    "id": "novofine-plus",
+    "type": "иглы",
+    "name": "NovoFine Plus 32G 4 mm",
+    "brand": "Novo Nordisk",
+    "description": "Тонкие короткие иглы для шприц-ручек.",
+    "compatibility": ["большинство pen-устройств с универсальной резьбой"],
+    "conditions": "Однократное использование; техника инъекции — по обучению.",
+    "promo": "Упаковки 100 шт."
+  }
+]

@@ -1,0 +1,82 @@
+---
+description: Правила разработки кода проекта — KISS, ООП, слои
+alwaysApply: true
+---
+
+# Conventions
+
+Источник истины: `docs/vision.md`. При неясности — сверяйся с документом, не выдумывай архитектуру.
+
+## Главное
+
+- **KISS / YAGNI**: только код, нужный для работы бота. Без абстракций «на будущее».
+- **1 класс = 1 файл**: `agent_service.py` → `class AgentService`. `dataclass`/`TypedDict` — исключение, рядом с использованием.
+- **Минимум слоёв**: `handlers/` → `services/` → внешние API. `config.py` — env. `main.py` — точка входа.
+- MCP-сервер — отдельный подпроект `mcp/mcp-nika-agent/` (свой `uv` / `pyproject.toml`).
+- Запуск MCP: `make run-mcp-nika` (порт 8000); бот: `make run`.
+
+## Агент и retrieval
+
+- Справочный диалог — **ReAct-агент** через `create_agent` + `MemorySaver` (`vision.md` §15).
+- Без ручного StateGraph / `add_node` / кастомного ReAct-цикла.
+- Локальные tools: `rag_search`, `glucose_unit_converter` — контракт в `vision.md` §15.
+- MCP tools: `search_products`, `food_nutrition`, `calculate_meal_bolus`,
+  `order_care_product`, `register_cgm_sensor` — `vision.md` §16–17.
+- Init агента с MCP — **async** (`await mcp_client.get_tools()`); sync `__init__` с get_tools недопустим.
+- Graceful degradation: MCP недоступен → warning, работа без MCP-tools (`vision.md` §16).
+- Вызов хода агента — паттерн **`run_turn_agent`** (user text + resume HITL): `vision.md` §15, §17.
+- Retrieval: `RAG_RETRIEVAL_MODE` (`semantic` | `hybrid` | `hybrid_rerank`); деталь — `vision.md` §11.
+- Query transformation **не использовать** — поисковые фразы формулирует агент.
+- `RagService` — **только retrieve**, без генерации ответа.
+- Sync LangChain / sentence-transformers — через `asyncio.to_thread`.
+- Источники для UI и eval — только из tool-вызовов **текущего** запроса (`vision.md` §15).
+- Референсы: `docs/references/agent.ipynb`, `docs/references/advanced-hybrid-rag.ipynb`,
+  `docs/references/agent-evaluation.ipynb`,
+  `../slides/notebook/09-mcp/agent-mcp.ipynb`,
+  `../slides/notebooks/agent-guards-demo.ipynb`.
+
+## Безопасность (middleware)
+
+- Штатные middleware LangChain; детали конфигурации — `vision.md` §17 (не дублировать здесь).
+- HITL только для критичных MCP-tools (`order_care_product`, `register_cgm_sensor`);
+  decisions: **approve / reject**, без edit.
+- Telegram: кнопки Accept / Reject → callback → resume агента; markup снять после нажатия.
+- PII — маскирование `credit_card` в output; rate limits — model/tool call limits за run.
+- Без своего security-framework, Redis-квот, InvisibleText/LLM Guard (пока не запрошено).
+
+## Мониторинг и качество
+
+- LangSmith — только через `LANGSMITH_*` в `.env`.
+- `dataset_synthesizer.py` и `evaluation.py` — отдельные сервисы, без DI.
+- RAGAS evaluation **async** (`aevaluate`), уникальный `chat_id` на пример — `vision.md` §14.
+- Тот же `RAG_RETRIEVAL_MODE`, что у бота.
+- E2E trajectory-тесты (agentevals) — `tests/`, детали — `vision.md` §18.
+  Не смешивать с RAGAS. Модель судьи — `AGENTEVALS_LLM_MODEL`.
+- Запуск: `make test-deterministic` / `make test-llm-judge` / `make test-all`.
+
+## Код
+
+- Python 3.12, весь I/O — **async** (`aiogram`, `openai` async client).
+- Типы везде; код должен проходить **mypy** strict и **ruff**.
+- Именование: `snake_case` (файлы, функции), `PascalCase` (классы).
+
+## Запрещено без явного запроса
+
+- Repository, Factory, DI-контейнеры, лишние интерфейсы
+- БД, Redis, очереди, ORM, веб-фреймворки в головном боте
+- Персистентные vector DB / SqliteSaver (достаточно MemorySaver)
+- CI/CD (локальные e2e в `tests/` — в scope; пайплайн CI — нет)
+- Перенос учёта/фото/инсулина в tools агента
+- Скрипт `sample_data` для `care_products.json` — данные генерируются вручную
+- HITL edit, маскирование input, обязательный LLM Guard
+
+## Зависимости
+
+Только через `uv` (`uv add`). Полный стек — `docs/vision.md` §1; MCP-сервер — свой pyproject в подпроекте.
+Головной бот: `langchain-mcp-adapters>=0.1.0`. Dev/e2e: `agentevals`, `pytest`, `pytest-asyncio`.
+
+## Изменения
+
+Новый класс → новый файл в правильном слое. Не раздувай существующие файлы.
+Спринты **дополняют** предыдущие — не удаляй учёт, инсулин, фото, голос, hybrid/rerank,
+мониторинг, локальные tools, MCP, RAGAS без явного запроса.
